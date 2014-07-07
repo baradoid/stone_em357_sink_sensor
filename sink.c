@@ -521,9 +521,12 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     TPayLoadData payLoadData; 
     emberCopyFromLinkedBuffers(message, EUI64_SIZE, (int8u*) &payLoadData, sizeof(TPayLoadData));
 
-      
-    emberSerialPrintf(APP_SERIAL, " __ %d %d %d %d %d %d %d %d %d %d\r\n", 
+    int8s rssi;
+    emberGetLastHopRssi(&rssi);
+    
+    emberSerialPrintf(APP_SERIAL, " __ %d %d PAP:%X, RSSI:%d, %d %d %d %d %d %d %d %d \r\n", 
                                                                     payLoadData.temp, payLoadData.vcc, 
+                                                                    payLoadData.paport, rssi,
                                                                     payLoadData.impCnt[0],
                                                                     payLoadData.impCnt[1],
                                                                     payLoadData.impCnt[2],

@@ -303,6 +303,7 @@ void main(void)
   }
   emberSerialWaitSend(APP_SERIAL);
 
+  GPIO_PACFGL = (GPIO_PACFGL&(~0xf))|0x8;
   // event loop
   while(TRUE) {
 
@@ -676,6 +677,7 @@ static void applicationTick(void) {
   if ( (int16u)(time - lastBlinkTime) > TICKS_PER_QUARTER_SECOND ) {
     lastBlinkTime = time;
 
+    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x\r\n", GPIO_PAIN);
     // blink the LEDs
     appSetLEDsToRunningState();
 
@@ -943,7 +945,8 @@ void sendData(void) {
   payLoadData.impCnt[5] = 6;
   payLoadData.impCnt[6] = 7;
   payLoadData.impCnt[7] = 8;
-  emberSerialPrintf(APP_SERIAL, "__ %2X %2X \r\n", payLoadData.temp, payLoadData.vcc);
+  payLoadData.paport = GPIO_PAIN;
+  //emberSerialPrintf(APP_SERIAL, "__ %2X %2X \r\n", payLoadData.temp, payLoadData.vcc);
   
   MEMCOPY(&(globalBuffer[EUI64_SIZE]), &payLoadData, sizeof(TPayLoadData));
   //MEMCOPY(&(globalBuffer[0]), &payLoadData, sizeof(TPayLoadData));
@@ -997,9 +1000,9 @@ void sendData(void) {
   emberReleaseMessageBuffer(buffer);
 
   // print a status message
-  emberSerialPrintf(APP_SERIAL,
-                    "TX [DATA] status: 0x%x  data: 0x%2x / len 0x%x\r\n",
-                    status, data, sendDataSize + EUI64_SIZE);
+//  emberSerialPrintf(APP_SERIAL,
+//                    "TX [DATA] status: 0x%x  data: 0x%2x / len 0x%x\r\n",
+//                    status, data, sendDataSize + EUI64_SIZE);
 }
 
 // add the multicast group
