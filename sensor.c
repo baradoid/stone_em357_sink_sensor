@@ -658,17 +658,44 @@ void emberUnusedPanIdFoundHandler(EmberPanId panId, int8u channel)
 // *******************************************************************
 // Functions that use EmberNet
 
+boolean getPulseState()
+{
+  return (GPIO_PAIN&PA5_MASK)==0;
+}
+
+boolean bPulseLasteState[3] = {FALSE, FALSE, FALSE};
+int32u iCnt = 0;
+TPayLoadData payLoadData; 
 // applicationTick - called to check application timeouts, button events,
 // and periodically flash LEDs
 static void applicationTick(void) {
   static int16u lastBlinkTime = 0;
+  static int16u lastGPIOPollTime = 0;
+  static int16u lastPrintPollTime = 0;
   int16u time;
 
   #ifdef USE_BOOTLOADER_LIB
     bootloadUtilTick();
   #endif
   time = halCommonGetInt16uMillisecondTick();
+  
+  if((int16u)(time - lastGPIOPollTime) > 30){
+    lastGPIOPollTime = time;  
 
+    bPulseLasteState[2] = bPulseLasteState[1];
+    bPulseLasteState[1] = bPulseLasteState[0];
+    bPulseLasteState[0] = getPulseState();
+    if(bPulseLasteState[0] == TRUE)
+      if(bPulseLasteState[1] == TRUE)
+        if(bPulseLasteState[2] == FALSE)
+          payLoadData.impCnt[0]++;
+  }
+
+  if( (int16u)(time - lastPrintPollTime) > 250 ){        
+    lastPrintPollTime = time;
+    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x, %d\r\n", GPIO_PAIN, iCnt);
+  }
+  
   // Application timers are based on quarter second intervals, where each 
   // quarter second is equal to TICKS_PER_QUARTER_SECOND millisecond ticks. 
   // Only service the timers (decrement and check if they are 0) after each
@@ -677,7 +704,6 @@ static void applicationTick(void) {
   if ( (int16u)(time - lastBlinkTime) > TICKS_PER_QUARTER_SECOND ) {
     lastBlinkTime = time;
 
-    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x\r\n", GPIO_PAIN);
     // blink the LEDs
     appSetLEDsToRunningState();
 
@@ -932,12 +958,11 @@ void sendData(void) {
 //                                                                                          emberGetEui64()[6],
 //                                                                                          emberGetEui64()[7]);
 //  emberSerialPrintf(APP_SERIAL, "data: %s \r\n", str);
-  TPayLoadData payLoadData; 
+
   //MEMCOPY(payLoadData.eui, emberGetEui64(), EUI64_SIZE);
   payLoadData.temp = 537;
   payLoadData.vcc = 2650;
   //payLoadData.eui = 0x000D6F000257A4E1;
-  payLoadData.impCnt[0] = 1;
   payLoadData.impCnt[1] = 2;
   payLoadData.impCnt[2] = 3;
   payLoadData.impCnt[3] = 4;
