@@ -191,6 +191,9 @@ void printCounters(void);
 PGM_P titleStrings[] = {
       EMBER_COUNTER_STRINGS
 };
+
+void initPins();
+void initCounters();
 //
 // *******************************************************************
 
@@ -303,7 +306,10 @@ void main(void)
   }
   emberSerialWaitSend(APP_SERIAL);
 
-  GPIO_PACFGL = (GPIO_PACFGL&(~0xf))|0x8;
+  //config pins
+  initPins();
+  initCounters();
+
   // event loop
   while(TRUE) {
 
@@ -654,18 +660,78 @@ void emberUnusedPanIdFoundHandler(EmberPanId panId, int8u channel)
 // end Ember callback handlers
 // *******************************************************************
 
+typedef struct {
+  int32u pinMask;
+  int32u *gpioRegInAddr;
+  boolean bPulseLasteState[3];
+  int32u counterValue;
+} TCounterAttr;
 
+TCounterAttr counterAttr[4];
+
+#define GPIO_PULL_DOWN  0
+#define GPIO_PULL_UP    1
+
+#define configPinToInputPullUpDown(reg,port,pin,pull) \
+            reg = (reg&(~port##pin##_CFG_MASK))|(0x8<<port##pin##_CFG_BIT); \
+            GPIO_##port##OUT_REG = (GPIO_##port##OUT_REG&(~port##pin##_MASK))|(pull<<port##pin##_BIT)
+
+#define configPinInputPullUp(reg,port,pin)      configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_UP)
+#define configPinInputPullDown(reg,port,pin)    configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_DOWN)
+                                            
+void initPins()
+{
+  //AC
+  //impulse 1 - pin22 - PC2
+  configPinInputPullUp(GPIO_PCCFGL_REG, PC, 2);
+  //impulse 2 - pin24 - PC4
+  configPinInputPullUp(GPIO_PCCFGH_REG, PC, 4);
+  //impulse 3 - pin30 - PB5
+  configPinInputPullUp(GPIO_PBCFGH_REG, PB, 5);
+  //impulse 4 - pin15 - PA5
+  configPinInputPullUp(GPIO_PACFGH_REG, PA, 5);
+  
+  //AC/DC detector - pin15 - PA0
+  configPinInputPullDown(GPIO_PACFGH_REG, PA, 0);
+}
+
+void initCounters()
+{
+  for(int i=0; i<4; i++)
+    for(int j=0; j<3; j++)
+      counterAttr[i].bPulseLasteState[j] = FALSE;
+
+  counterAttr[0].pinMask = PC2_MASK;
+  counterAttr[0].gpioRegInAddr = (int32u*)GPIO_PCIN_ADDR;
+  
+  counterAttr[1].pinMask = PC4_MASK;
+  counterAttr[1].gpioRegInAddr = (int32u*)GPIO_PCIN_ADDR;
+  
+  counterAttr[2].pinMask = PB5_MASK;
+  counterAttr[2].gpioRegInAddr = (int32u*)GPIO_PBIN_ADDR;
+  
+  counterAttr[3].pinMask = PA5_MASK;
+  counterAttr[3].gpioRegInAddr = (int32u*)GPIO_PAIN_ADDR;
+}
+
+boolean getPulseState(TCounterAttr *attr)
+{  
+  return (*((volatile int32u *)attr->gpioRegInAddr)&attr->pinMask)==0;
+}
+
+void processCounter(TCounterAttr *attr)
+{
+  attr->bPulseLasteState[2] = attr->bPulseLasteState[1];
+  attr->bPulseLasteState[1] = attr->bPulseLasteState[0];
+  attr->bPulseLasteState[0] = getPulseState(attr);
+  if(attr->bPulseLasteState[0] == TRUE)
+    if(attr->bPulseLasteState[1] == TRUE)
+      if(attr->bPulseLasteState[2] == FALSE)
+        attr->counterValue++;
+}
 // *******************************************************************
 // Functions that use EmberNet
 
-boolean getPulseState()
-{
-  return (GPIO_PAIN&PA5_MASK)==0;
-}
-
-boolean bPulseLasteState[3] = {FALSE, FALSE, FALSE};
-int32u iCnt = 0;
-TPayLoadData payLoadData; 
 // applicationTick - called to check application timeouts, button events,
 // and periodically flash LEDs
 static void applicationTick(void) {
@@ -681,19 +747,21 @@ static void applicationTick(void) {
   
   if((int16u)(time - lastGPIOPollTime) > 30){
     lastGPIOPollTime = time;  
-
-    bPulseLasteState[2] = bPulseLasteState[1];
-    bPulseLasteState[1] = bPulseLasteState[0];
-    bPulseLasteState[0] = getPulseState();
-    if(bPulseLasteState[0] == TRUE)
-      if(bPulseLasteState[1] == TRUE)
-        if(bPulseLasteState[2] == FALSE)
-          payLoadData.impCnt[0]++;
+    
+    for(int i=0; i<4; i++){
+      processCounter(&counterAttr[i]);
+    }
   }
 
-  if( (int16u)(time - lastPrintPollTime) > 250 ){        
+  if( (int16u)(time - lastPrintPollTime) > 1000 ){        
     lastPrintPollTime = time;
-    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x, %d\r\n", GPIO_PAIN, iCnt);
+    
+    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
+                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
+                                                                  counterAttr[0].counterValue,
+                                                                  counterAttr[1].counterValue,
+                                                                  counterAttr[2].counterValue,
+                                                                  counterAttr[3].counterValue);
   }
   
   // Application timers are based on quarter second intervals, where each 
@@ -960,16 +1028,16 @@ void sendData(void) {
 //  emberSerialPrintf(APP_SERIAL, "data: %s \r\n", str);
 
   //MEMCOPY(payLoadData.eui, emberGetEui64(), EUI64_SIZE);
+  TPayLoadData payLoadData; 
   payLoadData.temp = 537;
   payLoadData.vcc = 2650;
   //payLoadData.eui = 0x000D6F000257A4E1;
-  payLoadData.impCnt[1] = 2;
-  payLoadData.impCnt[2] = 3;
-  payLoadData.impCnt[3] = 4;
-  payLoadData.impCnt[4] = 5;
-  payLoadData.impCnt[5] = 6;
-  payLoadData.impCnt[6] = 7;
-  payLoadData.impCnt[7] = 8;
+ 
+  for(int i=0; i<4; i++)
+    payLoadData.impCnt[i] = counterAttr[i].counterValue;  
+  for(int i=4; i<8; i++)
+    payLoadData.impCnt[i] = 0;  
+    
   payLoadData.paport = GPIO_PAIN;
   //emberSerialPrintf(APP_SERIAL, "__ %2X %2X \r\n", payLoadData.temp, payLoadData.vcc);
   
