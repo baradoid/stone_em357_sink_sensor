@@ -305,10 +305,15 @@ void main(void)
          "SENSOR APP: push button 0 to join a network\r\n");
   }
   emberSerialWaitSend(APP_SERIAL);
-
+  
   //config pins
   initPins();
   initCounters();
+  EmberStatus stat = emberSetRadioPower(-7);
+  if(stat != EMBER_SUCCESS){
+    emberSerialPrintf(APP_SERIAL,
+         "emberSetRadioPower failure with %d \r\n", stat);
+  }
 
   // event loop
   while(TRUE) {
@@ -409,6 +414,7 @@ void emberMessageSentHandler(EmberOutgoingMessageType type,
     // counter back to zero
     else {
       numberOfFailedDataMessages = 0;
+      emberSerialPrintf(APP_SERIAL,"ACKED with %d fails \r\n", numberOfFailedDataMessages);
     }
   }
 
@@ -669,16 +675,31 @@ typedef struct {
 
 TCounterAttr counterAttr[4];
 
-#define GPIO_PULL_DOWN  0
-#define GPIO_PULL_UP    1
-
-#define configPinToInputPullUpDown(reg,port,pin,pull) \
-            reg = (reg&(~port##pin##_CFG_MASK))|(0x8<<port##pin##_CFG_BIT); \
-            GPIO_##port##OUT_REG = (GPIO_##port##OUT_REG&(~port##pin##_MASK))|(pull<<port##pin##_BIT)
-
-#define configPinInputPullUp(reg,port,pin)      configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_UP)
-#define configPinInputPullDown(reg,port,pin)    configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_DOWN)
-                                            
+//#define GPIO_MODE_ANALOG        0x0
+//#define GPIO_MODE_OUT_PUSH_PULL 0x1
+//#define GPIO_MODE_INPUT_FLOAT   0x4
+//#define GPIO_MODE_OUT_OD        0x5
+//#define GPIO_MODE_INPUT         0x8 
+//#define GPIO_MODE_ALT_OUT_PU    0x9 
+//#define GPIO_MODE_ALT_OUT_OD    0xD
+//
+//
+//#define GPIO_PULL_DOWN  0
+//#define GPIO_PULL_UP    1
+////GPIO_PAOUT_REG
+//#define configPinMode(reg,port,pin,mode) \
+//            reg = (reg&(~port##pin##_CFG_MASK))|(mode<<port##pin##_CFG_BIT);
+//
+//#define configPinOut(port,pin, state) \
+//            GPIO_##port##OUT_REG = (GPIO_##port##OUT_REG&(~port##pin##_MASK))|(state<<port##pin##_BIT)
+//            
+//#define configPinToInputPullUpDown(reg,port,pin,pull) \
+//            reg = (reg&(~port##pin##_CFG_MASK))|(0x8<<port##pin##_CFG_BIT); \
+//            GPIO_##port##OUT_REG = (GPIO_##port##OUT_REG&(~port##pin##_MASK))|(pull<<port##pin##_BIT)
+//
+//#define configPinInputPullUp(reg,port,pin)      configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_UP)
+//#define configPinInputPullDown(reg,port,pin)    configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_DOWN)
+//                                            
 void initPins()
 {
   //AC
@@ -691,8 +712,16 @@ void initPins()
   //impulse 4 - pin15 - PA5
   configPinInputPullUp(GPIO_PACFGH_REG, PA, 5);
   
-  //AC/DC detector - pin15 - PA0
-  configPinInputPullDown(GPIO_PACFGH_REG, PA, 0);
+  //AC/DC detector - pin9 - PA0
+  configPinInputPullDown(GPIO_PACFGL_REG, PA, 0);
+  
+  //LED - pin5 - PA7
+  configPinMode(GPIO_PACFGH_REG, PA, 7, GPIO_MODE_OUT_PUSH_PULL);
+  
+  //TX_ACTIVE - internal - PC5
+  configPinMode(GPIO_PCCFGH_REG, PC, 5, GPIO_MODE_ALT_OUT_PU);
+  
+  
 }
 
 void initCounters()
@@ -712,6 +741,11 @@ void initCounters()
   
   counterAttr[3].pinMask = PA5_MASK;
   counterAttr[3].gpioRegInAddr = (int32u*)GPIO_PAIN_ADDR;
+}
+
+boolean isAcPower()
+{
+  return (GPIO_PAIN&PA0_MASK)!=0;
 }
 
 boolean getPulseState(TCounterAttr *attr)
@@ -738,6 +772,12 @@ static void applicationTick(void) {
   static int16u lastBlinkTime = 0;
   static int16u lastGPIOPollTime = 0;
   static int16u lastPrintPollTime = 0;
+  
+  static int16u ledState = 0;
+  
+  static int16u acPollTime = 0;
+  static boolean lastAcState = FALSE;
+  
   int16u time;
 
   #ifdef USE_BOOTLOADER_LIB
@@ -752,16 +792,39 @@ static void applicationTick(void) {
       processCounter(&counterAttr[i]);
     }
   }
+  
+  if((int16u)(time - acPollTime) > 500){
+    acPollTime = time; 
+    //emberSerialPrintf(APP_SERIAL, "PAIN %x \r\n", GPIO_PAIN);
+    boolean acState = isAcPower();
+    if(acState != lastAcState){
+      lastAcState = acState;
+      if(acState == TRUE)
+        emberSerialPrintf(APP_SERIAL, "AC power ON \r\n");
+      else
+        emberSerialPrintf(APP_SERIAL, "AC power OFF \r\n");     
+    }
+  }
+    
 
   if( (int16u)(time - lastPrintPollTime) > 1000 ){        
     lastPrintPollTime = time;
     
-    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
-                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
-                                                                  counterAttr[0].counterValue,
-                                                                  counterAttr[1].counterValue,
-                                                                  counterAttr[2].counterValue,
-                                                                  counterAttr[3].counterValue);
+    if(ledState == 0){
+      configPinOut(PA, 7, 0);
+      ledState = 1;
+    }
+    else{
+      configPinOut(PA, 7, 1);
+      ledState = 0;      
+    }
+    
+//    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
+//                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
+//                                                                  counterAttr[0].counterValue,
+//                                                                  counterAttr[1].counterValue,
+//                                                                  counterAttr[2].counterValue,
+//                                                                  counterAttr[3].counterValue);
   }
   
   // Application timers are based on quarter second intervals, where each 
@@ -1031,15 +1094,20 @@ void sendData(void) {
   TPayLoadData payLoadData; 
   payLoadData.temp = 537;
   payLoadData.vcc = 2650;
+  payLoadData.isAcPower = isAcPower();
   //payLoadData.eui = 0x000D6F000257A4E1;
  
   for(int i=0; i<4; i++)
     payLoadData.impCnt[i] = counterAttr[i].counterValue;  
-  for(int i=4; i<8; i++)
-    payLoadData.impCnt[i] = 0;  
+//  for(int i=4; i<8; i++)
+//    payLoadData.impCnt[i] = 0;  
     
   payLoadData.paport = GPIO_PAIN;
   //emberSerialPrintf(APP_SERIAL, "__ %2X %2X \r\n", payLoadData.temp, payLoadData.vcc);
+  
+  static int32u sendDataCnt = 0;
+  payLoadData.msgNum = sendDataCnt;
+  emberSerialPrintf(APP_SERIAL, "send data %d pwr:%s\r\n", sendDataCnt++, payLoadData.isAcPower?"AC":"BAT");
   
   MEMCOPY(&(globalBuffer[EUI64_SIZE]), &payLoadData, sizeof(TPayLoadData));
   //MEMCOPY(&(globalBuffer[0]), &payLoadData, sizeof(TPayLoadData));

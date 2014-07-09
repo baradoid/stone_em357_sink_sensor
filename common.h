@@ -232,9 +232,37 @@ boolean isMyNeighbor(EmberEUI64 eui);
 void formatFixed(int8u* charBuffer, int32s value, int8u minDig, int8u dot, boolean showPlus);
 
 typedef struct{
+  int32u msgNum;
   int16u paport;
   int16u vcc;
+  int16u isAcPower;
   int16u temp;
-  int32u impCnt[8];
+  int32u impCnt[4];
 }TPayLoadData;
 
+#define GPIO_MODE_ANALOG        0x0
+#define GPIO_MODE_OUT_PUSH_PULL 0x1
+#define GPIO_MODE_INPUT_FLOAT   0x4
+#define GPIO_MODE_OUT_OD        0x5
+#define GPIO_MODE_INPUT         0x8 
+#define GPIO_MODE_ALT_OUT_PU    0x9 
+#define GPIO_MODE_ALT_OUT_OD    0xD
+
+
+#define GPIO_PULL_DOWN  0
+#define GPIO_PULL_UP    1
+//GPIO_PAOUT_REG
+#define configPinMode(reg,port,pin,mode) \
+            reg = (reg&(~port##pin##_CFG_MASK))|(mode<<port##pin##_CFG_BIT);
+
+#define configPinOut(port,pin, state) \
+            GPIO_##port##OUT_REG = (GPIO_##port##OUT_REG&(~port##pin##_MASK))|(state<<port##pin##_BIT)
+            
+#define configPinToInputPullUpDown(reg,port,pin,pull) \
+            reg = (reg&(~port##pin##_CFG_MASK))|(0x8<<port##pin##_CFG_BIT); \
+            GPIO_##port##OUT_REG = (GPIO_##port##OUT_REG&(~port##pin##_MASK))|(pull<<port##pin##_BIT)
+
+#define configPinInputPullUp(reg,port,pin)      configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_UP)
+#define configPinInputPullDown(reg,port,pin)    configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_DOWN)
+  
+              

@@ -340,6 +340,21 @@ int main(void)
   halToggleLed(BOARDLED3);
 #endif//NO_LED
 
+  //TX_ACTIVE - internal - PC5
+  configPinMode(GPIO_PCCFGH_REG, PC, 5, GPIO_MODE_ALT_OUT_PU);
+  configPinMode(GPIO_PBCFGL_REG, PB, 0, GPIO_MODE_OUT_PUSH_PULL);
+  configPinOut(PB, 0, 1);
+
+  emberSerialPrintf(APP_SERIAL, "emberGetRadioPower %d  ", emberGetRadioPower());
+  emberSerialPrintf(APP_SERIAL, "try to set -7 ... ", emberGetRadioPower());
+  EmberStatus stat = emberSetRadioPower(-7);  
+  if(stat == EMBER_SUCCESS){
+    emberSerialPrintf(APP_SERIAL, "EMBER_SUCCESS \r\n", stat);
+  }
+  else{
+    emberSerialPrintf(APP_SERIAL, "failure with %d \r\n", stat);
+  }
+
   // event loop
   while(TRUE) {
 
@@ -524,17 +539,23 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     int8s rssi;
     emberGetLastHopRssi(&rssi);
     
-    emberSerialPrintf(APP_SERIAL, " __ %d %d PAP:%X, RSSI:%d, %d %d %d %d %d %d %d %d \r\n", 
-                                                                    payLoadData.temp, payLoadData.vcc, 
-                                                                    payLoadData.paport, rssi,
+    emberSerialPrintf(APP_SERIAL, " __ %d pwr: %s RSSI:%d, %x %x %x %x \r\n", 
+                                                                    payLoadData.msgNum,
+                                                                    payLoadData.isAcPower?"AC":"BAT",
+                                                                    rssi,
                                                                     payLoadData.impCnt[0],
                                                                     payLoadData.impCnt[1],
                                                                     payLoadData.impCnt[2],
-                                                                    payLoadData.impCnt[3],
-                                                                    payLoadData.impCnt[4],
-                                                                    payLoadData.impCnt[5],
-                                                                    payLoadData.impCnt[6],
-                                                                    payLoadData.impCnt[7]);
+                                                                    payLoadData.impCnt[3]
+                                                                      );
+    /*emberSerialPrintf(APP_SERIAL, " __ %d pwr: %s RSSI:%d, %x %x %x %x \r\n",
+                                                                    payLoadData.msgNum, 
+                                                                    payLoadData.isAcPower?"AC":"BAT",
+                                                                    rssi,
+                                                                    payLoadData.impCnt[0],
+                                                                    payLoadData.impCnt[1],
+                                                                    payLoadData.impCnt[2],
+                                                                    payLoadData.impCnt[3]);*/
     /*
     if (length < 10) {
       emberSerialPrintf(APP_SERIAL, "; len 0x%x / data NO DATA!\r\n");
