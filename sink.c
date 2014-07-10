@@ -340,11 +340,7 @@ int main(void)
   halToggleLed(BOARDLED3);
 #endif//NO_LED
 
-  //TX_ACTIVE - internal - PC5
-  configPinMode(GPIO_PCCFGH_REG, PC, 5, GPIO_MODE_ALT_OUT_PU);
-  configPinMode(GPIO_PBCFGL_REG, PB, 0, GPIO_MODE_OUT_PUSH_PULL);
-  configPinOut(PB, 0, 1);
-  
+  initPins();
   configRfFrontEnd(); 
   
   // event loop
@@ -521,8 +517,8 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     addressTableIndex = findAddressTableLocation(eui);
     if (addressTableIndex != EMBER_NULL_ADDRESS_TABLE_INDEX)
       ticksSinceLastHeard[addressTableIndex] = 0;
-    emberSerialPrintf(APP_SERIAL, "RX [DATA] from: ");
-    printEUI64(APP_SERIAL, &eui);
+    //emberSerialPrintf(APP_SERIAL, "RX [DATA] from: ");
+    //printEUI64(APP_SERIAL, &eui);
     //emberSerialPrintf(APP_SERIAL, " : %s \r\n", emberGetLinkedBuffersPointer(message, EUI64_SIZE));
     
     TPayLoadData payLoadData; 
@@ -531,7 +527,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     int8s rssi;
     emberGetLastHopRssi(&rssi);
     
-    emberSerialPrintf(APP_SERIAL, " __ %d pwr: %s RSSI:%d, %x %x %x %x \r\n", 
+    /*emberSerialPrintf(APP_SERIAL, " __ %d pwr: %s RSSI:%d, %4x %4x %4x %4x \r\n", 
                                                                     payLoadData.msgNum,
                                                                     payLoadData.isAcPower?"AC":"BAT",
                                                                     rssi,
@@ -539,7 +535,18 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
                                                                     payLoadData.impCnt[1],
                                                                     payLoadData.impCnt[2],
                                                                     payLoadData.impCnt[3]
-                                                                      );
+                                                                      );*/
+    //message format
+    emberSerialPrintf(APP_SERIAL, "MV00,");
+    printEUI64(APP_SERIAL, &eui);
+    emberSerialPrintf(APP_SERIAL, ",%2x,%d,136,%sA5A,%4x,%4x,%4x,%4x,FB\r\n", 
+                                                                    payLoadData.msgNum,
+                                                                    rssi,
+                                                                    payLoadData.isAcPower?"A":"B",
+                                                                    payLoadData.impCnt[0],
+                                                                    payLoadData.impCnt[1],
+                                                                    payLoadData.impCnt[2],
+                                                                    payLoadData.impCnt[3]);
     /*
     if (length < 10) {
       emberSerialPrintf(APP_SERIAL, "; len 0x%x / data NO DATA!\r\n");
@@ -608,7 +615,8 @@ void emberStackStatusHandler(EmberStatus status)
              "     : channel 0x%x, panid 0x%2x, ",
              networkParams.radioChannel, networkParams.panId);
         printExtendedPanId(APP_SERIAL, networkParams.extendedPanId);
-        emberSerialPrintf(APP_SERIAL, "\r\n");
+        emberSerialWaitSend(APP_SERIAL);
+        emberSerialPrintf(APP_SERIAL, "  \r\n");
         emberSerialWaitSend(APP_SERIAL);
       }
     }

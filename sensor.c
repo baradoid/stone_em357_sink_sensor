@@ -410,7 +410,7 @@ void emberMessageSentHandler(EmberOutgoingMessageType type,
     // counter back to zero
     else {
       numberOfFailedDataMessages = 0;
-      emberSerialPrintf(APP_SERIAL,"ACKED with %d fails \r\n", numberOfFailedDataMessages);
+      //emberSerialPrintf(APP_SERIAL,"ACKED with %d fails \r\n", numberOfFailedDataMessages);
     }
   }
 
@@ -699,29 +699,6 @@ TCounterAttr counterAttr[4];
 //#define configPinInputPullUp(reg,port,pin)      configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_UP)
 //#define configPinInputPullDown(reg,port,pin)    configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_DOWN)
 //                                            
-void initPins()
-{
-  //AC
-  //impulse 1 - pin22 - PC2
-  configPinInputPullUp(GPIO_PCCFGL_REG, PC, 2);
-  //impulse 2 - pin24 - PC4
-  configPinInputPullUp(GPIO_PCCFGH_REG, PC, 4);
-  //impulse 3 - pin30 - PB5
-  configPinInputPullUp(GPIO_PBCFGH_REG, PB, 5);
-  //impulse 4 - pin15 - PA5
-  configPinInputPullUp(GPIO_PACFGH_REG, PA, 5);
-  
-  //AC/DC detector - pin9 - PA0
-  configPinInputPullDown(GPIO_PACFGL_REG, PA, 0);
-  
-  //LED - pin5 - PA7
-  configPinMode(GPIO_PACFGH_REG, PA, 7, GPIO_MODE_OUT_PUSH_PULL);
-  
-  //TX_ACTIVE - internal - PC5
-  configPinMode(GPIO_PCCFGH_REG, PC, 5, GPIO_MODE_ALT_OUT_PU);
-  
-  
-}
 
 void initCounters()
 {

@@ -968,6 +968,32 @@ void formatFixed(int8u* charBuffer, int32s value, int8u minDig, int8u dot, boole
   *charBuffer = 0;
 }
 
+void initPins()
+{
+  //impulse 1 - pin22 - PC2
+  configPinInputPullUp(GPIO_PCCFGL_REG, PC, 2);
+  //impulse 2 - pin24 - PC4
+  configPinInputPullUp(GPIO_PCCFGH_REG, PC, 4);
+  //impulse 3 - pin30 - PB5
+  configPinInputPullUp(GPIO_PBCFGH_REG, PB, 5);
+  //impulse 4 - pin15 - PA5
+  configPinInputPullUp(GPIO_PACFGH_REG, PA, 5);
+  
+  //AC/DC detector - pin9 - PA0
+  configPinInputPullDown(GPIO_PACFGL_REG, PA, 0);
+  
+  //LED - pin5 - PA7
+  configPinMode(GPIO_PACFGH_REG, PA, 7, GPIO_MODE_OUT_PUSH_PULL);
+  
+  //pins for RF frontEnd control on LRS version
+  //TX_ACTIVE - internal - PC5
+  configPinMode(GPIO_PCCFGH_REG, PC, 5, GPIO_MODE_ALT_OUT_PU);
+  
+  //power down,RX bypass - pin25 - PB0
+  configPinMode(GPIO_PBCFGL_REG, PB, 0, GPIO_MODE_OUT_PUSH_PULL);
+  configPinOut(PB, 0, 1);
+}
+
 void configRfFrontEnd()
 {
   int16u tokenData;
@@ -984,15 +1010,28 @@ void configRfFrontEnd()
       
   emberSerialPrintf(APP_SERIAL,  "tx power %d dBm. try to set tx power to %d dBm ... ", 
                                                                               emberGetRadioPower(),
-                                                                              txPower); 
-  EmberStatus stat = emberSetRadioPower(txPower);  
+                                                                              txPower);
+  EmberStatus stat;
+  stat = emberSetRadioPower(txPower);  
   if(stat == EMBER_SUCCESS){
     emberSerialPrintf(APP_SERIAL, "EMBER_SUCCESS \r\n", stat);
   }
   else{
     emberSerialPrintf(APP_SERIAL, "failure with %d \r\n", stat);
   }
+
+  if(bIsLrs == FALSE){
+    emberSerialPrintf(APP_SERIAL,  "try to put rf in boost mode ... ");  
+    stat = emberSetTxPowerMode(EMBER_TX_POWER_MODE_BOOST);
+    if(stat == EMBER_SUCCESS){
+      emberSerialPrintf(APP_SERIAL, "EMBER_SUCCESS \r\n", stat);
+    }
+    else{
+      emberSerialPrintf(APP_SERIAL, "failure with %d \r\n", stat);
+    }
+  }
   
-  
+ // emberSerialPrintf(APP_SERIAL,  "tx power %d dBm.  \r\n", emberGetRadioPower());
 }
+
 
