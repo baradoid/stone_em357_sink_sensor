@@ -811,6 +811,19 @@ static void applicationTick(void) {
               "deleting address table index %x, status %x\r\n", i, status);
           ticksSinceLastHeard[i] = 0xFFFF;
         }
+
+      }
+      if (ticksSinceLastHeard[i] != 0xFFFF) {
+        if(ticksSinceLastHeard[i] % SEND_DATA_RATE == 0){
+          if(ticksSinceLastHeard[i]/SEND_DATA_RATE > 1){
+            EmberEUI64 missingEui64;
+            emberGetAddressTableRemoteEui64(i, missingEui64);
+            emberSerialPrintf(APP_SERIAL,
+                "missing message %d from ", ticksSinceLastHeard[i]/SEND_DATA_RATE);
+            printEUI64(APP_SERIAL, &missingEui64);
+            emberSerialPrintf(APP_SERIAL, " \r\n");
+          }
+        }
       }
     }
 

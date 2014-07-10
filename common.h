@@ -108,7 +108,7 @@
 #define SEND_DATA_RATE  20 // rate sent in quarter-seconds
 
 // num of pkts to miss before deciding that other node is gone
-#define MISS_PACKET_TOLERANCE    3
+#define MISS_PACKET_TOLERANCE    10
 
 // buffer used to build up a message before being transmitted
 extern int8u globalBuffer[];
