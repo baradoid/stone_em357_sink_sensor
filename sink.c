@@ -537,12 +537,15 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
                                                                     payLoadData.impCnt[3]
                                                                       );*/
     //message format
+    char vccStr[5];
+    sprintf(vccStr+1, "%2x", payLoadData.vcc);
+    vccStr[0] = payLoadData.isAcPower?'A':'B';
     emberSerialPrintf(APP_SERIAL, "MV00,");
     printEUI64(APP_SERIAL, &eui);
-    emberSerialPrintf(APP_SERIAL, ",%2x,%d,136,%sA5A,%4x,%4x,%4x,%4x,FB\r\n", 
+    emberSerialPrintf(APP_SERIAL, ",%2x,%d,136,%s,%4x,%4x,%4x,%4x,FB\r\n", 
                                                                     payLoadData.msgNum,
                                                                     rssi,
-                                                                    payLoadData.isAcPower?"A":"B",
+                                                                    vccStr,
                                                                     payLoadData.impCnt[0],
                                                                     payLoadData.impCnt[1],
                                                                     payLoadData.impCnt[2],

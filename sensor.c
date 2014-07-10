@@ -1069,7 +1069,7 @@ void sendData(void) {
   //MEMCOPY(payLoadData.eui, emberGetEui64(), EUI64_SIZE);
   TPayLoadData payLoadData; 
   payLoadData.temp = 537;
-  payLoadData.vcc = 2650;
+  payLoadData.vcc = halMeasureVdd(ADC_CONVERSION_TIME_US_256);
   payLoadData.isAcPower = isAcPower();
   //payLoadData.eui = 0x000D6F000257A4E1;
  
@@ -1612,12 +1612,14 @@ void readAndPrintSensorData()
   EmberStatus readStatus;
   
   emberSerialPrintf(APP_SERIAL, "Printing sensor data...\r\n");
-  halStartAdcConversion(ADC_USER_APP, ADC_REF_INT, TEMP_SENSOR_ADC_CHANNEL,
+  halStartAdcConversion(ADC_USER_APP, ADC_REF_INT, TEMP_SENSOR_ADC_CHANNEL, // ADC_SOURCE_VDD_PADS_GND,
                         ADC_CONVERSION_TIME_US_256);
   emberSerialWaitSend(APP_SERIAL);
   readStatus = halReadAdcBlocking(ADC_USER_APP, &value);
   
   if( readStatus == EMBER_ADC_CONVERSION_DONE) {
+    emberSerialPrintf(APP_SERIAL, "ADC Voltage V = %d\r\n", halMeasureVdd(ADC_CONVERSION_TIME_US_256));
+    
     fvolts = halConvertValueToVolts(value / TEMP_SENSOR_SCALE_FACTOR);
     formatFixed(str, (int32s)fvolts, 5, 4, TRUE);
     emberSerialPrintf(APP_SERIAL, "ADC Voltage V = %s\r\n", str);
