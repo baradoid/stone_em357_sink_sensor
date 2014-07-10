@@ -309,11 +309,7 @@ void main(void)
   //config pins
   initPins();
   initCounters();
-  EmberStatus stat = emberSetRadioPower(-7);
-  if(stat != EMBER_SUCCESS){
-    emberSerialPrintf(APP_SERIAL,
-         "emberSetRadioPower failure with %d \r\n", stat);
-  }
+  configRfFrontEnd();
 
   // event loop
   while(TRUE) {
@@ -594,6 +590,9 @@ void emberStackStatusHandler(EmberStatus status)
     emberSerialPrintf(APP_SERIAL,
           "EVENT: stackStatus now EMBER_NETWORK_DOWN\r\n");
     appSetLEDsToInitialState();
+          
+    emberSerialPrintf(APP_SERIAL, "try to reconnect\r\n");
+    buttonZeroPress = TRUE;
     break;
 
   case EMBER_JOIN_FAILED:

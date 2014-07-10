@@ -265,4 +265,5 @@ typedef struct{
 #define configPinInputPullUp(reg,port,pin)      configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_UP)
 #define configPinInputPullDown(reg,port,pin)    configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_DOWN)
   
+void configRfFrontEnd();
               

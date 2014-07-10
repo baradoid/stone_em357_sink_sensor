@@ -968,3 +968,31 @@ void formatFixed(int8u* charBuffer, int32s value, int8u minDig, int8u dot, boole
   *charBuffer = 0;
 }
 
+void configRfFrontEnd()
+{
+  int16u tokenData;
+  halCommonGetMfgToken((void*)&tokenData, TOKEN_MFG_PHY_CONFIG);
+  //emberSerialPrintf(APP_SERIAL,  "tokenData %x \r\n", tokenData);
+  boolean bIsLrs = (tokenData&(1<<1))==0? TRUE:FALSE;
+  emberSerialPrintf(APP_SERIAL,  "ETRX357 %s \r\n", bIsLrs==TRUE? "LRS":"STD");
+ 
+  int8s txPower = 0;
+  if(bIsLrs == TRUE)
+    txPower = -7;
+  else
+    txPower = 8;
+      
+  emberSerialPrintf(APP_SERIAL,  "tx power %d dBm. try to set tx power to %d dBm ... ", 
+                                                                              emberGetRadioPower(),
+                                                                              txPower); 
+  EmberStatus stat = emberSetRadioPower(txPower);  
+  if(stat == EMBER_SUCCESS){
+    emberSerialPrintf(APP_SERIAL, "EMBER_SUCCESS \r\n", stat);
+  }
+  else{
+    emberSerialPrintf(APP_SERIAL, "failure with %d \r\n", stat);
+  }
+  
+  
+}
+
