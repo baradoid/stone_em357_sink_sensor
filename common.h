@@ -149,8 +149,12 @@ void sensorCommonPrint16ByteKey(int8u* key);
   // when not using hardcoded settings, it is possible to ensure that
   // devices join to each other by setting an extended PAN ID below. 
   // Leaving the extended PAN ID as "0" means "use any"
-  #define APP_EXTENDED_PANID {0,0,0,0,0,0,0,0}
+  #define APP_EXTENDED_PANID {0x9D,0x38,0x36,0x49,0xAE,0x9B,0xB1,0xFA}
 #endif //USE_HARDCODED_NETWORK_SETTINGS
+
+#define APP_CHANNEL (24)
+#define APP_PANID   (0x305A)
+#define APP_EXTENDED_PANID {0x9D,0x38,0x36,0x49,0xAE,0x9B,0xB1,0xFA}
 
 #define APP_POWER   (3)
 

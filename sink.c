@@ -287,7 +287,7 @@ int main(void)
     sensorCommonSetupSecurity();
 
     // Bring the network up.
-    #ifdef USE_HARDCODED_NETWORK_SETTINGS
+//    #ifdef USE_HARDCODED_NETWORK_SETTINGS
       // set the mode we are using
       networkFormMethod = SINK_FORM_NEW_NETWORK;
 
@@ -314,21 +314,21 @@ int main(void)
           status);
         assert(FALSE);
       }
-    #else
-      // set the mode we are using
-      networkFormMethod = SINK_USE_SCAN_UTILS;
-
-      // tell the user what is going on
-      emberSerialPrintf(APP_SERIAL,
-           "FORM : scanning for an available channel and panid\r\n");
-      emberSerialWaitSend(APP_SERIAL);
-
-      // Use a function from app/util/common/form-and-join.c
-      // that scans and selects a quiet channel to form on.
-      // Once a PAN id and channel are chosen, calls
-      // emberUnusedPanIdFoundHandler.
-      emberScanForUnusedPanId(EMBER_ALL_802_15_4_CHANNELS_MASK, 5);
-    #endif
+//    #else
+//      // set the mode we are using
+//      networkFormMethod = SINK_USE_SCAN_UTILS;
+//
+//      // tell the user what is going on
+//      emberSerialPrintf(APP_SERIAL,
+//           "FORM : scanning for an available channel and panid\r\n");
+//      emberSerialWaitSend(APP_SERIAL);
+//
+//      // Use a function from app/util/common/form-and-join.c
+//      // that scans and selects a quiet channel to form on.
+//      // Once a PAN id and channel are chosen, calls
+//      // emberUnusedPanIdFoundHandler.
+//      emberScanForUnusedPanId(EMBER_ALL_802_15_4_CHANNELS_MASK, 5);
+//    #endif
   } 
   // don't need an else clause. The else clause means the emberNetworkInit
   // worked and the stackStatusHandler will be called.
@@ -342,6 +342,11 @@ int main(void)
 
   initPins();
   configRfFrontEnd(); 
+  
+   emberPermitJoining(0xff);
+#if EMBER_SECURITY_LEVEL == 5
+   trustCenterPermitJoins(TRUE);
+#endif // EMBER_SECURITY_LEVEL == 5
   
   // event loop
   while(TRUE) {
@@ -744,15 +749,15 @@ static void applicationTick(void) {
       // Increment our timer for joining.  Turn off joining at the trust
       // center when it has reached the join timeout.
       // *******************
-      if ( trustCenterIsPermittingJoins() ) {
-        permitJoinsTimer++;
-        
-        // permitJoinsTimer is in quarter-seconds, joinTimeout is in seconds
-        if ( permitJoinsTimer > (joinTimeout * 4)) {
-          trustCenterPermitJoins(FALSE);
-          permitJoinsTimer = 0;
-        }
-      }
+//      if ( trustCenterIsPermittingJoins() ) {
+//        permitJoinsTimer++;
+//        
+//        // permitJoinsTimer is in quarter-seconds, joinTimeout is in seconds
+//        if ( permitJoinsTimer > (joinTimeout * 4)) {
+//          trustCenterPermitJoins(FALSE);
+//          permitJoinsTimer = 0;
+//        }
+//      }
 #endif
 
       // ******************************************
@@ -840,11 +845,11 @@ static void applicationTick(void) {
       emberSerialPrintf(APP_SERIAL, "BUTTON0: turn permit join ON for 60 seconds\r\n");
 
       // turn allow join on
-      emberPermitJoining(joinTimeout);
-#if EMBER_SECURITY_LEVEL == 5
-      trustCenterPermitJoins(TRUE);
-      permitJoinsTimer = 0;
-#endif // EMBER_SECURITY_LEVEL == 5
+//      emberPermitJoining(joinTimeout);
+//#if EMBER_SECURITY_LEVEL == 5
+//      trustCenterPermitJoins(TRUE);
+//      permitJoinsTimer = 0;
+//#endif // EMBER_SECURITY_LEVEL == 5
     }
 
     // **** check for BUTTON1 press
