@@ -297,14 +297,19 @@ void main(void)
       (emberNetworkInit() == EMBER_SUCCESS))
   {
     // were able to join the old network
-    emberGetNetworkParameters(&parameters);
+    emberGetNetworkParameters(&parameters);    
     emberSerialPrintf(APP_SERIAL,
-                      "SENSOR APP: joining network - ");
+                      "SENSOR APP: able to join the old network \r\n");
+    emberSerialPrintf(APP_SERIAL,
+                      "SENSOR APP: joining network - \r\n");
     printNetInfo(&parameters);
   } else {
     // were not able to join the old network
     emberSerialPrintf(APP_SERIAL,
-         "SENSOR APP: push button 0 to join a network\r\n");
+         "SENSOR APP: not able to join the old network\r\n");
+    
+//    emberSerialPrintf(APP_SERIAL,
+//         "SENSOR APP: push button 0 to join a network\r\n");
   }
   emberSerialWaitSend(APP_SERIAL);
   
