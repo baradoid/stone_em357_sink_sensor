@@ -145,6 +145,8 @@ int8u PGM tune[] = {
   0,        0
 };
 
+int16u curBootloadAddrIndex = 0;
+
 // a timer to remind us to send the network key update after we have sent
 // out the network key. We must wait a period equal to the broadcast 
 // timeout so that all routers have a chance to receive the broadcast 
@@ -522,6 +524,46 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     addressTableIndex = findAddressTableLocation(eui);
     if (addressTableIndex != EMBER_NULL_ADDRESS_TABLE_INDEX)
       ticksSinceLastHeard[addressTableIndex] = 0;
+    
+    EmberStatus status;
+  addressTableIndex = findAddressTableLocation(eui);
+  if (addressTableIndex != EMBER_NULL_ADDRESS_TABLE_INDEX) {
+    /*emberSerialPrintf(APP_SERIAL,
+                      "receive duplicate message from ");
+    printEUI64(APP_SERIAL, (EmberEUI64 *)eui);
+    emberSerialPrintf(APP_SERIAL, "\r\n");*/
+  } else {
+    // find a free address table location to put this address
+    addressTableIndex = findFreeAddressTableLocation();
+    if (addressTableIndex == EMBER_NULL_ADDRESS_TABLE_INDEX) {
+      emberSerialPrintf(APP_SERIAL,
+                        "WARNING: no more free address table entries\r\n");
+      return;
+    }
+
+    // add an address table entry
+    status = emberSetAddressTableRemoteEui64(addressTableIndex, eui);
+    if (status != EMBER_SUCCESS) {
+      emberSerialPrintf(APP_SERIAL,
+                        "TX ERROR [sink ready], set remote EUI64 failure,"
+                        " status 0x%x\r\n",
+                        status);
+      return;
+    }
+    emberSetAddressTableRemoteNodeId(addressTableIndex, sender);
+
+    emberSerialPrintf(APP_SERIAL,
+                      "EVENT: sink set address table entry %x to node [",
+                      addressTableIndex );
+    printEUI64(APP_SERIAL, (EmberEUI64 *)eui);
+    emberSerialPrintf(APP_SERIAL, "]\r\n");
+    emberSerialWaitSend(APP_SERIAL);
+  }
+
+  ticksSinceLastHeard[addressTableIndex] = 0;
+  
+    
+    
     //emberSerialPrintf(APP_SERIAL, "RX [DATA] from: ");
     //printEUI64(APP_SERIAL, &eui);
     //emberSerialPrintf(APP_SERIAL, " : %s \r\n", emberGetLinkedBuffersPointer(message, EUI64_SIZE));
@@ -1199,6 +1241,8 @@ void sinkInit(void) {
 // for processing serial cmds
 // *****************************
 void processSerialInput(void) {
+        
+  EmberEUI64 eui;
   int8u cmd = '\0';
 
   if(emberSerialReadByte(APP_SERIAL, &cmd) == 0) {
@@ -1278,15 +1322,15 @@ void processSerialInput(void) {
       {
         int8u index;
         EmberEUI64 eui;
-        if (emberGetAddressTableRemoteNodeId(0) 
+        if (emberGetAddressTableRemoteNodeId(curBootloadAddrIndex) 
             == EMBER_TABLE_ENTRY_UNUSED_NODE_ID) {
           // error
           emberSerialPrintf(APP_SERIAL,
                             "ERROR: no device in address table at"
-                            " location 0\r\n");
+                            " location %d\r\n", curBootloadAddrIndex);
           break;
         }
-        emberGetAddressTableRemoteEui64(0, eui);
+        emberGetAddressTableRemoteEui64(curBootloadAddrIndex, eui);
         emberSerialPrintf(APP_SERIAL, "INFO : attempt BL\r\n");
         if (isMyChild(eui, &index)) {
           bootloadMySleepyChild(eui);
@@ -1298,12 +1342,29 @@ void processSerialInput(void) {
           // error  
           emberSerialPrintf(APP_SERIAL,
                             "ERROR: can't bootload device whose address is "
-                            " stored at location 0 of the address table,"
-                            " not neighbor or child\r\n");
+                            " stored at location %d of the address table,"
+                            " not neighbor or child\r\n", curBootloadAddrIndex);
         }
       }
       break;
 
+    case 'p':
+      curBootloadAddrIndex --;
+      emberSerialPrintf(APP_SERIAL, "bootloadindex setted to %d with eui ", curBootloadAddrIndex);
+
+      emberGetAddressTableRemoteEui64(curBootloadAddrIndex, eui);
+      printEUI64(APP_SERIAL, &eui);
+      emberSerialPrintf(APP_SERIAL, "\r\n");
+      break;
+      
+    case 'n':
+      curBootloadAddrIndex ++;
+      emberSerialPrintf(APP_SERIAL, "bootloadindex setted to %d with eui ", curBootloadAddrIndex);
+      emberGetAddressTableRemoteEui64(curBootloadAddrIndex, eui);
+      printEUI64(APP_SERIAL, &eui);
+      emberSerialPrintf(APP_SERIAL, "\r\n");  
+      break;
+      
       // This command initiates a passthru bootloading of the first
       // device in the child table
     case 'C':
