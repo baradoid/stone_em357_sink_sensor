@@ -891,6 +891,10 @@ static void applicationTick(void) {
   }
     
 
+  int16u vdd = halMeasureVdd(ADC_CONVERSION_TIME_US_256);
+  if(vdd < 2500){
+    emberSerialPrintf(APP_SERIAL, "vdd %d \r\n", vdd);
+  }
   // Application timers are based on quarter second intervals, where each 
   // quarter second is equal to TICKS_PER_QUARTER_SECOND millisecond ticks. 
   // Only service the timers (decrement and check if they are 0) after each
