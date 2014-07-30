@@ -985,6 +985,17 @@ void initPins()
   //LED - pin5 - PA7
   configPinMode(GPIO_PACFGH_REG, PA, 7, GPIO_MODE_OUT_PUSH_PULL);
   
+  configPinMode(GPIO_PACFGH_REG, PA, 6, GPIO_MODE_OUT_PUSH_PULL);
+  configPinOut(PA, 6, 1);
+  
+  GPIO_DBGCFG |= GPIO_DEBUGDIS;
+  configPinMode(GPIO_PCCFGL_REG, PC, 0, GPIO_MODE_OUT_PUSH_PULL);
+  configPinOut(PC, 0, 1);
+  configPinMode(GPIO_PBCFGH_REG, PB, 7, GPIO_MODE_OUT_PUSH_PULL);
+  configPinOut(PB, 7, 1);
+  configPinMode(GPIO_PBCFGH_REG, PB, 6, GPIO_MODE_OUT_PUSH_PULL);
+  configPinOut(PB, 6, 1);
+    
   //pins for RF frontEnd control on LRS version
   //TX_ACTIVE - internal - PC5
   configPinMode(GPIO_PCCFGH_REG, PC, 5, GPIO_MODE_ALT_OUT_PU);

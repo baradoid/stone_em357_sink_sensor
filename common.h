@@ -262,6 +262,9 @@ typedef struct{
 
 #define configPinOut(port,pin, state) \
             GPIO_##port##OUT_REG = (GPIO_##port##OUT_REG&(~port##pin##_MASK))|(state<<port##pin##_BIT)
+
+#define togglePin(port,pin) \
+            GPIO_##port##OUT_REG ^= port##pin##_MASK
             
 #define configPinToInputPullUpDown(reg,port,pin,pull) \
             reg = (reg&(~port##pin##_CFG_MASK))|(0x8<<port##pin##_CFG_BIT); \

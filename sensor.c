@@ -195,6 +195,7 @@ PGM_P titleStrings[] = {
 void initPins();
 void initCounters();
 void unjoinedAppTick();
+void appTick();
 //
 // *******************************************************************
 
@@ -325,7 +326,7 @@ void main(void)
 
     emberTick();
     emberFormAndJoinTick();
-
+    
 #ifdef USE_MFG_CLI
     if (mfgMode) {
       mfgMode = mfgCmdProcessing();
@@ -347,6 +348,7 @@ void main(void)
     #ifdef DEBUG
       emberSerialBufferTick();   // Needed for debug which uses buffered serial
     #endif
+    appTick();
   }
 }
 
@@ -816,6 +818,36 @@ void joinNetwork()
 
 // *******************************************************************
 // Functions that use EmberNet
+static void appTick()
+{
+  static int16u lastGPIOPollTime = 0;
+  static int16u lastBlinkTime11 = 0;
+  int16u time = halCommonGetInt16uMillisecondTick();
+    
+  if((int16u)(time - lastGPIOPollTime) > 30){
+      lastGPIOPollTime = time;  
+    
+    for(int i=0; i<4; i++){
+      processCounter(&counterAttr[i]);
+    }
+  }
+     
+  if((int16u)(time - lastBlinkTime11) > 100){
+    lastBlinkTime11 = time; 
+    
+    configPinOut(PA, 6, counterAttr[0].bPulseLasteState[0]);
+    configPinOut(PC, 0, counterAttr[1].bPulseLasteState[0]);
+    configPinOut(PB, 7, counterAttr[2].bPulseLasteState[0]);
+    configPinOut(PB, 6, counterAttr[3].bPulseLasteState[0]); 
+
+
+    togglePin(PA, 6);
+    togglePin(PC, 0);
+    togglePin(PB, 7);
+    togglePin(PB, 6); 
+  }
+}
+
 static void unjoinedAppTick()
 {
   static int16u lastJoinNetworkAttemptTime = 0;    
@@ -833,7 +865,6 @@ static void unjoinedAppTick()
 // and periodically flash LEDs
 static void applicationTick(void) {
   static int16u lastBlinkTime = 0;
-  static int16u lastGPIOPollTime = 0;
   static int16u lastPrintPollTime = 0;
   
   static int16u ledState = 0;
@@ -848,14 +879,7 @@ static void applicationTick(void) {
   #endif
   time = halCommonGetInt16uMillisecondTick();
   
-  if((int16u)(time - lastGPIOPollTime) > 30){
-    lastGPIOPollTime = time;  
-    
-    for(int i=0; i<4; i++){
-      processCounter(&counterAttr[i]);
-    }
-  }
-  
+
   if((int16u)(time - acPollTime) > 500){
     acPollTime = time; 
     //emberSerialPrintf(APP_SERIAL, "PAIN %x \r\n", GPIO_PAIN);
