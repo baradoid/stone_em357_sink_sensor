@@ -205,6 +205,8 @@ EmberEventData appEvents[] = {
 // *******************************************************************
 // Begin main application loop
 
+unsigned irqDCnt = 0;
+
 void main(void)
 
 {
@@ -302,6 +304,27 @@ void main(void)
 
   emberTaskEnableIdling(TRUE);
   
+    //config pins
+  initPins();
+  //initCounters();
+  configRfFrontEnd();
+  //GPIO_PBWAKE = (PC2|PC4); //pc2 pc4
+  //GPIO_PCWAKE = PB5; //pb5
+   
+//  GPIO_INTCFGD = 0;              //disable BUTTON2 triggering
+//  INT_CFGCLR = INT_IRQD; //BUTTON2_INT_EN_BIT; //clear BUTTON2 top level int enable
+//  INT_GPIOFLAG = INT_IRQDFLAG; //clear stale BUTTON2 interrupt
+//  INT_MISS = INT_MISSIRQD;     //clear stale missed BUTTON2 interrupt
+//  //configure BUTTON2
+//  //BUTTON2_SEL(); 
+//  GPIO_IRQDSEL = PORTC_PIN(2);
+//  //point IRQ at the desired pin
+//  GPIO_INTCFGD  = (0 << GPIO_INTFILT_BIT); //no filter
+//  GPIO_INTCFGD |= (2 << GPIO_INTMOD_BIT);  //3 = both edges
+//  
+//  
+//  INT_CFGSET = INT_IRQD; //set top level interrupt enable
+    
   // event loop
   while(TRUE) {
 
@@ -786,6 +809,10 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
   if(dataMode != DATA_MODE_TEST) {
     // message to know we are awake
     emberSerialGuaranteedPrintf(APP_SERIAL, "wakeup %x\r\n", status);
+    if(status != EMBER_SUCCESS){
+      emberSerialGuaranteedPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
+    }
+
   }
 }
 
@@ -954,6 +981,17 @@ static void applicationTick(void) {
     }
   }
 
+    
+  int16u time;
+  static int16u cntPollTime = 0;
+  time = halCommonGetInt16uMillisecondTick();
+
+  if((int16u)(time - cntPollTime) > 2000){  
+    cntPollTime = time;
+    emberSerialGuaranteedPrintf(APP_SERIAL,
+                      "irqDcnt: %d \r\n ", irqDCnt);
+  }
+  
   // if we are not joined and should sleep (which is turned on with
   // a serial cmd) then sleep here. We still check emberOkToHibernate()
   // since it is possible that the stack is performing an energy or active 
@@ -1515,15 +1553,15 @@ void handleSinkAdvertise(int8u* data) {
 // applicationTick function
 void halButtonIsr(int8u button, int8u state)
 {
-  // button 0 (button 0 on the dev board) was pushed down
-  if (button == BUTTON0 && state == BUTTON_PRESSED) {
-    buttonZeroPress = TRUE;
-  }
-
-  // button 1 (button 1 on the dev board) was pushed down
-  if (button == BUTTON1 && state == BUTTON_PRESSED) {
-    buttonOnePress = TRUE;
-  }
+//  // button 0 (button 0 on the dev board) was pushed down
+//  if (button == BUTTON0 && state == BUTTON_PRESSED) {
+//    buttonZeroPress = TRUE;
+//  }
+//
+//  // button 1 (button 1 on the dev board) was pushed down
+//  if (button == BUTTON1 && state == BUTTON_PRESSED) {
+//    buttonOnePress = TRUE;
+//  }
 
 }
 
@@ -1737,4 +1775,24 @@ void printHelp(void)
 
 // End utility functions
 // *******************************************************************
+
+
+void halIrqAIsr(void)
+{
+    PRINT("IrqAIsr\r\n");
+}
+
+void halIrqCIsr(void)
+{
+    PRINT("IrqCIsr\r\n");
+}
+
+void halIrqDIsr(void)
+{
+  INT_MISS = INT_MISSIRQD;     //clear missed BUTTON3 interrupt flag
+  INT_GPIOFLAG = INT_IRQDFLAG; //clear top level BUTTON3 interrupt flag
+  //INT_CFGCLR = INT_IRQD;
+  irqDCnt++;
+  //PRINT("IrqDIsr\r\n");
+}
 

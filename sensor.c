@@ -824,7 +824,7 @@ static void appTick()
   static int16u lastBlinkTime11 = 0;
   int16u time = halCommonGetInt16uMillisecondTick();
     
-  if((int16u)(time - lastGPIOPollTime) > 30){
+  if((int16u)(time - lastGPIOPollTime) > 20){
       lastGPIOPollTime = time;  
     
     for(int i=0; i<4; i++){
