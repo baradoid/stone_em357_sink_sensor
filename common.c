@@ -1046,3 +1046,73 @@ void configRfFrontEnd()
 }
 
 
+//work with counters
+TCounterAttr counterAttr[4];
+
+void initCounters()
+{
+  for(int i=0; i<4; i++)
+    for(int j=0; j<3; j++)
+      counterAttr[i].bPulseLasteState[j] = FALSE;
+
+  counterAttr[0].pinMask = PC2_MASK;
+  counterAttr[0].gpioRegInAddr = (int32u*)GPIO_PCIN_ADDR;
+  
+  counterAttr[1].pinMask = PC4_MASK;
+  counterAttr[1].gpioRegInAddr = (int32u*)GPIO_PCIN_ADDR;
+  
+  counterAttr[2].pinMask = PB5_MASK;
+  counterAttr[2].gpioRegInAddr = (int32u*)GPIO_PBIN_ADDR;
+  
+  counterAttr[3].pinMask = PA5_MASK;
+  counterAttr[3].gpioRegInAddr = (int32u*)GPIO_PAIN_ADDR;
+}
+
+boolean getPulseState(TCounterAttr *attr)
+{  
+  return (*((volatile int32u *)attr->gpioRegInAddr)&attr->pinMask)==0;
+}
+
+void processCounter(TCounterAttr *attr, int8u cntType)
+{
+  attr->bPulseLasteState[2] = attr->bPulseLasteState[1];
+  attr->bPulseLasteState[1] = attr->bPulseLasteState[0];
+  attr->bPulseLasteState[0] = getPulseState(attr);
+  if(cntType == COUNTER_NORMAL){
+    if(attr->bPulseLasteState[0] == TRUE)
+      if(attr->bPulseLasteState[1] == TRUE)
+        if(attr->bPulseLasteState[2] == FALSE)
+          attr->counterValue++;
+  }
+  else{
+    if(attr->bPulseLasteState[0] == TRUE)
+      if(attr->bPulseLasteState[1] == FALSE)
+          attr->counterValue++;
+  }
+}
+
+void processCountes()
+{
+  static int16u lastGPIOPollTime = 0;
+  int16u time = halCommonGetInt16uMillisecondTick();
+  if((int16u)(time - lastGPIOPollTime) > 20){
+      lastGPIOPollTime = time;  
+    
+    for(int i=0; i<4; i++){
+      processCounter(&counterAttr[i], COUNTER_NORMAL);
+    }
+  }
+}
+
+void processSleepyCountes()
+{
+  static int16u lastGPIOPollTime = 0;
+  int16u time = halCommonGetInt16uMillisecondTick();
+  if((int16u)(time - lastGPIOPollTime) > 50){
+      lastGPIOPollTime = time;  
+    
+    for(int i=0; i<4; i++){
+      processCounter(&counterAttr[i], COUNTER_SLEEPY);
+    }
+  }
+}

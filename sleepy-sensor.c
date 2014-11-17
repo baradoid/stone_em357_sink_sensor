@@ -306,7 +306,7 @@ void main(void)
   
     //config pins
   initPins();
-  //initCounters();
+  initCounters();
   configRfFrontEnd();
   //GPIO_PBWAKE = (PC2|PC4); //pc2 pc4
   //GPIO_PCWAKE = PB5; //pb5
@@ -324,6 +324,8 @@ void main(void)
 //  
 //  
 //  INT_CFGSET = INT_IRQD; //set top level interrupt enable
+  
+  GPIO_WAKEFILT = GPIO_WAKE_FILTER;
     
   // event loop
   while(TRUE) {
@@ -334,6 +336,8 @@ void main(void)
     emberFormAndJoinRunTask();
 
     processSerialInput();
+
+    processSleepyCountes();
 
     applicationTick(); // Power save, watch timeouts
 
@@ -808,7 +812,8 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
 
   if(dataMode != DATA_MODE_TEST) {
     // message to know we are awake
-    emberSerialGuaranteedPrintf(APP_SERIAL, "wakeup %x\r\n", status);
+    emberSerialGuaranteedPrintf(APP_SERIAL, "wakeup %x halGetWakeInfo %4x\r\n", status, halGetWakeInfo());
+
     if(status != EMBER_SUCCESS){
       emberSerialGuaranteedPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
     }
@@ -990,6 +995,17 @@ static void applicationTick(void) {
     cntPollTime = time;
     emberSerialGuaranteedPrintf(APP_SERIAL,
                       "irqDcnt: %d \r\n ", irqDCnt);
+  }
+  
+  static int16u cntrPrintTime = 0;
+  if((int16u)(time - cntrPrintTime) > 1000){ 
+    cntrPrintTime = time;
+    emberSerialGuaranteedPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
+                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
+                                                                  counterAttr[0].counterValue,
+                                                                  counterAttr[1].counterValue,
+                                                                  counterAttr[2].counterValue,
+                                                                  counterAttr[3].counterValue);
   }
   
   // if we are not joined and should sleep (which is turned on with

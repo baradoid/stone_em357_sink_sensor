@@ -193,7 +193,6 @@ PGM_P titleStrings[] = {
 };
 
 void initPins();
-void initCounters();
 void unjoinedAppTick();
 void appTick();
 //
@@ -679,15 +678,6 @@ void emberUnusedPanIdFoundHandler(EmberPanId panId, int8u channel)
 // end Ember callback handlers
 // *******************************************************************
 
-typedef struct {
-  int32u pinMask;
-  int32u *gpioRegInAddr;
-  boolean bPulseLasteState[3];
-  int32u counterValue;
-} TCounterAttr;
-
-TCounterAttr counterAttr[4];
-
 //#define GPIO_MODE_ANALOG        0x0
 //#define GPIO_MODE_OUT_PUSH_PULL 0x1
 //#define GPIO_MODE_INPUT_FLOAT   0x4
@@ -714,48 +704,12 @@ TCounterAttr counterAttr[4];
 //#define configPinInputPullDown(reg,port,pin)    configPinToInputPullUpDown(reg, port, pin, GPIO_PULL_DOWN)
 //                                            
 
-void initCounters()
-{
-  for(int i=0; i<4; i++)
-    for(int j=0; j<3; j++)
-      counterAttr[i].bPulseLasteState[j] = FALSE;
-
-  counterAttr[0].pinMask = PC2_MASK;
-  counterAttr[0].gpioRegInAddr = (int32u*)GPIO_PCIN_ADDR;
-  
-  counterAttr[1].pinMask = PC4_MASK;
-  counterAttr[1].gpioRegInAddr = (int32u*)GPIO_PCIN_ADDR;
-  
-  counterAttr[2].pinMask = PB5_MASK;
-  counterAttr[2].gpioRegInAddr = (int32u*)GPIO_PBIN_ADDR;
-  
-  counterAttr[3].pinMask = PA5_MASK;
-  counterAttr[3].gpioRegInAddr = (int32u*)GPIO_PAIN_ADDR;
-}
-
 boolean isAcPower()
 {
   return (GPIO_PAIN&PA0_MASK)!=0;
 }
 
-boolean getPulseState(TCounterAttr *attr)
-{  
-  return (*((volatile int32u *)attr->gpioRegInAddr)&attr->pinMask)==0;
-}
-
-void processCounter(TCounterAttr *attr)
-{
-  attr->bPulseLasteState[2] = attr->bPulseLasteState[1];
-  attr->bPulseLasteState[1] = attr->bPulseLasteState[0];
-  attr->bPulseLasteState[0] = getPulseState(attr);
-  if(attr->bPulseLasteState[0] == TRUE)
-    if(attr->bPulseLasteState[1] == TRUE)
-      if(attr->bPulseLasteState[2] == FALSE)
-        attr->counterValue++;
-}
-
-
-  #define APP_CHANNEL (24)
+#define APP_CHANNEL (24)
   #define APP_PANID   (0x305A)
   #define APP_EXTENDED_PANID {0x9D,0x38,0x36,0x49,0xAE,0x9B,0xB1,0xFA}
 
@@ -820,18 +774,11 @@ void joinNetwork()
 // Functions that use EmberNet
 static void appTick()
 {
-  static int16u lastGPIOPollTime = 0;
   static int16u lastBlinkTime11 = 0;
   int16u time = halCommonGetInt16uMillisecondTick();
-    
-  if((int16u)(time - lastGPIOPollTime) > 20){
-      lastGPIOPollTime = time;  
-    
-    for(int i=0; i<4; i++){
-      processCounter(&counterAttr[i]);
-    }
-  }
-     
+ 
+  processCountes();
+  
   if((int16u)(time - lastBlinkTime11) > 100){
     lastBlinkTime11 = time; 
     

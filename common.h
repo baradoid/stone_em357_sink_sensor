@@ -276,4 +276,20 @@ typedef struct{
 void initPins();
 void configRfFrontEnd();
 
-              
+//work with counters
+typedef struct {
+  int32u pinMask;
+  int32u *gpioRegInAddr;
+  boolean bPulseLasteState[3];
+  int32u counterValue;
+} TCounterAttr;
+
+extern TCounterAttr counterAttr[4];
+
+void initCounters();
+//boolean getPulseState(TCounterAttr *attr);
+#define COUNTER_NORMAL 0
+#define COUNTER_SLEEPY 1
+//void processCounter(TCounterAttr *attr, int8u cntType);
+void processCountes();
+void processSleepyCountes();
