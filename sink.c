@@ -467,7 +467,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
  
   
   //MEMCOPY(&eui, &(payLoadData.eui[0]), EUI64_SIZE);
-
+  
   // ********************************************
   // handle the incoming message
   // ********************************************
@@ -513,6 +513,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     break;
 
   case MSG_SINK_QUERY:
+    printTimeStamp();
     emberSerialPrintf(APP_SERIAL, "RX [sink query] from: ");
     printEUI64(APP_SERIAL, &eui);
     emberSerialPrintf(APP_SERIAL, "; processing message\r\n");
@@ -552,6 +553,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     }
     emberSetAddressTableRemoteNodeId(addressTableIndex, sender);
 
+    printTimeStamp();
     emberSerialPrintf(APP_SERIAL,
                       "EVENT: sink set address table entry %x to node [",
                       addressTableIndex );
@@ -587,6 +589,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     char vccStr[5];
     sprintf(vccStr+1, "%2x", payLoadData.vcc);
     vccStr[0] = payLoadData.isAcPower?'A':'B';
+    printTimeStamp();
     emberSerialPrintf(APP_SERIAL, "MV00,");
     printEUI64(APP_SERIAL, &eui);
     emberSerialPrintf(APP_SERIAL, ",%2x,%d,136,%s,%4x,%4x,%4x,%4x,FB\r\n", 
@@ -811,6 +814,7 @@ static void applicationTick(void) {
       if (timeBeforeSinkAdvertise == 2) {
         status = emberSendManyToOneRouteRequest(concentratorType,
                                                 10);        // radius
+        printTimeStamp();
         emberSerialPrintf(APP_SERIAL,
                           "EVENT: sink send many-to-one route request,"
                           " status 0x%x\r\n", status);
@@ -818,6 +822,7 @@ static void applicationTick(void) {
 
       // do the sink advertise (multicast)
       if (timeBeforeSinkAdvertise == 0) {
+        printTimeStamp();
         emberSerialPrintf(APP_SERIAL,
             "EVENT: sink automatically advertising to find sensors\r\n");
         sinkAdvertise();
@@ -868,6 +873,7 @@ static void applicationTick(void) {
           if(ticksSinceLastHeard[i]/SEND_DATA_RATE > 1){
             EmberEUI64 missingEui64;
             emberGetAddressTableRemoteEui64(i, missingEui64);
+            printTimeStamp();
             emberSerialPrintf(APP_SERIAL,
                 "missing message %d from ", ticksSinceLastHeard[i]/SEND_DATA_RATE);
             printEUI64(APP_SERIAL, &missingEui64);
@@ -996,6 +1002,7 @@ void sinkAdvertise(void) {
   // done with the packet buffer
   emberReleaseMessageBuffer(buffer);
 
+  printTimeStamp();
   emberSerialPrintf(APP_SERIAL,
        "TX [sink advertise], status 0x%x\r\n", status);
 }

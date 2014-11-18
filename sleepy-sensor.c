@@ -432,6 +432,7 @@ void emberMessageSentHandler(EmberOutgoingMessageType type,
     // counter back to zero
     else {
       if(dataMode != DATA_MODE_TEST) {
+        printTimeStamp();
         emberSerialPrintf(APP_SERIAL, "RX ACK for [DATA]\r\n");
       }
       numberOfFailedDataMessages = 0;
@@ -993,14 +994,14 @@ static void applicationTick(void) {
 
   if((int16u)(time - cntPollTime) > 2000){  
     cntPollTime = time;
-    emberSerialGuaranteedPrintf(APP_SERIAL,
+    emberSerialPrintf(APP_SERIAL,
                       "irqDcnt: %d \r\n ", irqDCnt);
   }
   
   static int16u cntrPrintTime = 0;
   if((int16u)(time - cntrPrintTime) > 1000){ 
     cntrPrintTime = time;
-    emberSerialGuaranteedPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
+    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
                                                                   GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
                                                                   counterAttr[0].counterValue,
                                                                   counterAttr[1].counterValue,
@@ -1125,7 +1126,8 @@ void appEventHandler(void)
       // durations. If we send and then move without getting the
       // ack the stack will not return TRUE from emberOkToNap
       if (numQsParentGone < 161) {
-        sendData();
+        //sendData();
+        sendDataCommon(TYPE_SLEEPY);
       }
     }
   } else {
