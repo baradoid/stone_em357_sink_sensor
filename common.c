@@ -8,7 +8,7 @@
 
 #include "app/sensor/common.h"
 #include "app/util/security/security.h"
-
+#include <stdio.h>
 #ifdef SINK_APP
 extern int16u ticksSinceLastHeard[];
 #endif
@@ -1046,6 +1046,23 @@ void configRfFrontEnd()
 }
 
 
+
+void printTimeStamp()
+{
+  int32u curtime = halCommonGetInt32uMillisecondTick();
+  int32u ms = curtime - ((curtime/1000)*1000);
+  int32u s = (int32u)(curtime/1000.);
+  s -= ((s/60)*60);
+  int32u m = (int32u)(curtime/60000.);
+  m -= ((m/60)*60);
+  int32u h = (int32u)(curtime/3600000.);
+  h -= ((h/60)*60);
+  //emberSerialPrintf(APP_SERIAL, "[%d:%d:%d:%d] ", h, m, s, ms); //emberSerialPrintf emberSerialGuaranteedPrintf
+  char str[30];
+  sprintf(str, "[%02d:%02d:%02d:%03d] ", h, m, s, ms);
+  emberSerialPrintf(APP_SERIAL, "%s", str);
+}
+
 //work with counters
 TCounterAttr counterAttr[4];
 
@@ -1078,7 +1095,7 @@ void processCounter(TCounterAttr *attr, int8u cntType)
   attr->bPulseLasteState[2] = attr->bPulseLasteState[1];
   attr->bPulseLasteState[1] = attr->bPulseLasteState[0];
   attr->bPulseLasteState[0] = getPulseState(attr);
-  if(cntType == COUNTER_NORMAL){
+  if(cntType == TYPE_NORMAL){
     if(attr->bPulseLasteState[0] == TRUE)
       if(attr->bPulseLasteState[1] == TRUE)
         if(attr->bPulseLasteState[2] == FALSE)
@@ -1099,7 +1116,7 @@ void processCountes()
       lastGPIOPollTime = time;  
     
     for(int i=0; i<4; i++){
-      processCounter(&counterAttr[i], COUNTER_NORMAL);
+      processCounter(&counterAttr[i], TYPE_NORMAL);
     }
   }
 }
@@ -1112,7 +1129,186 @@ void processSleepyCountes()
       lastGPIOPollTime = time;  
     
     for(int i=0; i<4; i++){
-      processCounter(&counterAttr[i], COUNTER_SLEEPY);
+      processCounter(&counterAttr[i], TYPE_SLEEPY);
     }
   }
+}
+
+
+boolean isAcPower()
+{
+  return (GPIO_PAIN&PA0_MASK)!=0;
+}
+
+
+// The sensor reads (or fabricates) data and sends it out to the sink
+// There are four types of data that are sent:
+// - Temperature data as BCD (binary coded decimal) - this is the default
+// - Temperature data as a value
+// - ADC Volts reading
+// - random data
+// The type of data sent depends on the dataMode variable.
+void sendDataCommon(int8u type) {
+  EmberApsFrame apsFrame;
+  int16u data;
+  int16s fvolts;
+  int32s tempC;
+  int8u maximumPayloadLength;
+  EmberStatus status;
+  EmberMessageBuffer buffer;
+  //int8u i;
+  int8u sendDataSize = sizeof(TPayLoadData); //SEND_DATA_SIZE;
+//
+//  switch (dataMode) {
+//    default:
+//    case DATA_MODE_RANDOM:
+//      // get a random piece of data
+//      data = halCommonGetRandom();
+//      break;
+//    case DATA_MODE_VOLTS:
+//    case DATA_MODE_TEMP:
+//    case DATA_MODE_BCD_TEMP:
+//      if(halRequestAdcData(ADC_USER_APP2, &data) == EMBER_ADC_CONVERSION_DONE) {
+//        fvolts = halConvertValueToVolts(data / TEMP_SENSOR_SCALE_FACTOR);
+//        if (dataMode == DATA_MODE_VOLTS) {
+//          data = (int16u)fvolts;
+//        } else {
+//          tempC = voltsToCelsius(fvolts) / 100;
+//          if (dataMode == DATA_MODE_TEMP) {
+//            data = (int16u)tempC;
+//          } else {
+//            data = toBCD((int16u)tempC);
+//          }
+//        }
+//      } else {
+//        data = 0xFBAD;
+//      }
+//      break;
+//   }
+
+#ifdef DEBUG
+  emberDebugPrintf("sensor has data ready: 0x%2x \r\n", data);
+#endif
+
+  maximumPayloadLength = emberMaximumApsPayloadLength();
+
+  // make sure the size of the data we are sending is not too large,
+  // if it is too large then print a warning and chop it to a size
+  // that fits. The max payload isn't a constant size since it
+  // changes depending on if security is being used or not.
+  if ((sendDataSize + EUI64_SIZE) > maximumPayloadLength) {
+
+    // the payload is data plus the eui64
+    sendDataSize = maximumPayloadLength - EUI64_SIZE;
+
+    emberSerialPrintf(APP_SERIAL,
+                   "WARN: SEND_DATA_SIZE (%d) too large, changing to %d\r\n",
+                   SEND_DATA_SIZE, sendDataSize);
+  }
+
+  // sendDataSize must be an even number
+  sendDataSize = sendDataSize & 0xFE;
+
+  // the data - my long address and data
+  MEMCOPY(&(globalBuffer[0]), emberGetEui64(), EUI64_SIZE);
+//  for (i=0; i<(sendDataSize / 2); i++) {
+//    globalBuffer[EUI64_SIZE + (i*2)] = HIGH_BYTE(data);
+//    globalBuffer[EUI64_SIZE + (i*2) + 1] = LOW_BYTE(data);
+//  }
+  //custom data
+      //emberSerialPrintf(APP_SERIAL, "WARN: maximumPayloadLength %d\r\n", maximumPayloadLength);
+  //char str[] = "00,04C1,136,A5A,A,0000000C,00000000,00000000,00000000";
+//  char str[150];
+//  sprintf(str, "%X%X%X%X%X%X%X%X 00,04C1,136,A5A,A,0000000C,00000000,00000000,00000000",  emberGetEui64()[0],
+//                                                                                          emberGetEui64()[1],
+//                                                                                          emberGetEui64()[2],
+//                                                                                          emberGetEui64()[3],
+//                                                                                          emberGetEui64()[4],
+//                                                                                          emberGetEui64()[5],
+//                                                                                          emberGetEui64()[6],
+//                                                                                          emberGetEui64()[7]);
+//  emberSerialPrintf(APP_SERIAL, "data: %s \r\n", str);
+
+  //MEMCOPY(payLoadData.eui, emberGetEui64(), EUI64_SIZE);
+  TPayLoadData payLoadData; 
+  payLoadData.temp = 537;
+  payLoadData.vcc = halMeasureVdd(ADC_CONVERSION_TIME_US_256);
+  payLoadData.isAcPower = isAcPower();
+  //payLoadData.eui = 0x000D6F000257A4E1;
+ 
+  for(int i=0; i<4; i++)
+    payLoadData.impCnt[i] = counterAttr[i].counterValue;  
+//  for(int i=4; i<8; i++)
+//    payLoadData.impCnt[i] = 0;  
+    
+  payLoadData.paport = GPIO_PAIN;
+  //emberSerialPrintf(APP_SERIAL, "__ %2X %2X \r\n", payLoadData.temp, payLoadData.vcc);
+  
+  static int32u sendDataCnt = 0;
+  payLoadData.msgNum = sendDataCnt;
+  emberSerialPrintf(APP_SERIAL, "send data %d pwr:%s\r\n", sendDataCnt++, payLoadData.isAcPower?"AC":"BAT");
+  
+  MEMCOPY(&(globalBuffer[EUI64_SIZE]), &payLoadData, sizeof(TPayLoadData));
+  //MEMCOPY(&(globalBuffer[0]), &payLoadData, sizeof(TPayLoadData));
+  //
+  
+  // copy the data into a packet buffer
+  buffer = emberFillLinkedBuffers(globalBuffer,
+                                  EUI64_SIZE + sendDataSize);
+
+  // check to make sure a buffer is available
+  if (buffer == EMBER_NULL_MESSAGE_BUFFER) {
+    emberSerialPrintf(APP_SERIAL,
+          "TX ERROR [data], OUT OF BUFFERS\r\n");
+    return;
+  }
+
+  // all of the defined values below are from app/sensor-host/common.h
+  // with the exception of the options from stack/include/ember.h
+  apsFrame.profileId = PROFILE_ID;          // profile unique to this app
+  apsFrame.clusterId = MSG_DATA;            // the message we are sending
+  apsFrame.sourceEndpoint = ENDPOINT;       // sensor endpoint
+  apsFrame.destinationEndpoint = ENDPOINT;  // sensor endpoint
+  apsFrame.options = EMBER_APS_OPTION_RETRY; // Default to retry
+  //apsFrame.groupId = 0;        // multicast ID not used for unicasts 
+  //apsFrame.sequence = 0;       // the stack sets this to the seq num it uses
+
+
+  // send the message
+  status = emberSendUnicast(EMBER_OUTGOING_VIA_ADDRESS_TABLE,
+                            SINK_ADDRESS_TABLE_INDEX,
+                            &apsFrame,
+                            buffer);
+
+  if (status != EMBER_SUCCESS) {
+    extern int8u numberOfFailedDataMessages;
+    numberOfFailedDataMessages++;
+    emberSerialPrintf(APP_SERIAL,
+      "WARNING: SEND [data] failed, err 0x%x, failures:%x\r\n",
+                      status, numberOfFailedDataMessages);
+
+    // if too many data messages fails from sensor node then
+    // invalidate the sink and find another one
+    if (numberOfFailedDataMessages >= MISS_PACKET_TOLERANCE) {
+      emberSerialPrintf(APP_SERIAL,
+          "ERROR: too many data msg failures, looking for new sink\r\n");
+      extern boolean mainSinkFound;
+      mainSinkFound = FALSE;
+      numberOfFailedDataMessages = 0;
+    }
+  }
+  else{
+    if(type == TYPE_SLEEPY){
+      extern boolean waitingForDataAck;
+      waitingForDataAck = TRUE;
+    }
+  }
+
+  // done with the packet buffer
+  emberReleaseMessageBuffer(buffer);
+
+  // print a status message
+//  emberSerialPrintf(APP_SERIAL,
+//                    "TX [DATA] status: 0x%x  data: 0x%2x / len 0x%x\r\n",
+//                    status, data, sendDataSize + EUI64_SIZE);
 }

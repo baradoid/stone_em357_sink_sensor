@@ -288,8 +288,13 @@ extern TCounterAttr counterAttr[4];
 
 void initCounters();
 //boolean getPulseState(TCounterAttr *attr);
-#define COUNTER_NORMAL 0
-#define COUNTER_SLEEPY 1
+#define TYPE_NORMAL 0
+#define TYPE_SLEEPY 1
 //void processCounter(TCounterAttr *attr, int8u cntType);
 void processCountes();
 void processSleepyCountes();
+
+void printTimeStamp();
+
+void sendDataCommon(int8u type);
+
