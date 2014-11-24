@@ -133,7 +133,7 @@ void sensorCommonPrint16ByteKey(int8u* key);
 // it is not recommended to ever hard code the network settings
 // applications should always scan to determine the channel and panid
 // to use. However, in some instances, this can aid in debugging
-//#define USE_HARDCODED_NETWORK_SETTINGS
+#define USE_HARDCODED_NETWORK_SETTINGS
 
 #ifdef USE_HARDCODED_NETWORK_SETTINGS
   // when the network settings are hardcoded - set the channel, panid, and

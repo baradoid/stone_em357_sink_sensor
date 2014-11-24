@@ -128,7 +128,7 @@ boolean buttonZeroPress = FALSE;  // for button push (see halButtonIsr)
 boolean buttonOnePress = FALSE;  // for button push (see halButtonIsr)
 
 // controls if the node sleeps when it isn't part of a network
-boolean sleepWhenNotJoined = FALSE;
+boolean sleepWhenNotJoined = TRUE;
 
 // keeps track of if data was received in the last poll
 boolean lastPollGotData;
@@ -812,7 +812,38 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
 
   if(dataMode != DATA_MODE_TEST) {
     // message to know we are awake
-    emberSerialGuaranteedPrintf(APP_SERIAL, "wakeup %x halGetWakeInfo %4x\r\n", status, halGetWakeInfo());
+    emberSerialGuaranteedPrintf(APP_SERIAL, "wakeup %x halGetWakeInfo %4x ", status, halGetWakeInfo()); 
+
+// * - [31] = WakeInfoValid
+// * - [30] = SleepSkipped
+// * - [29] = CSYSPWRUPREQ
+// * - [28] = CDBGPWRUPREQ
+// * - [27] = PWRUP_WAKECORE
+// * - [26] = PWRUP_SLEEPTMRWRAP
+// * - [25] = PWRUP_SLEEPTMRCOMPB
+// * - [24] = PWRUP_SLEEPTMRCOMPA
+// * - [23:0] = corresponding GPIO activity
+
+    //if(halGetWakeInfo()&(1<<31))
+    //    emberSerialPrintf((APP_SERIAL, "WakeInfoValid", status, halGetWakeInfo()); 
+    if(halGetWakeInfo()&(1<<30))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "SleepSkipped"); 
+    if(halGetWakeInfo()&(1<<29))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "CSYSPWRUPREQ"); 
+    if(halGetWakeInfo()&(1<<28))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "CDBGPWRUPREQ"); 
+    if(halGetWakeInfo()&(1<<27))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_WAKECORE"); 
+    if(halGetWakeInfo()&(1<<26))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_SLEEPTMRWRAP"); 
+    if(halGetWakeInfo()&(1<<25))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_SLEEPTMRCOMPB"); 
+    if(halGetWakeInfo()&(1<<24))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_SLEEPTMRCOMPA"); 
+    if(halGetWakeInfo()&(0xFFFFFF))
+        emberSerialGuaranteedPrintf(APP_SERIAL, "GPIO activity"); 
+    
+    emberSerialGuaranteedPrintf(APP_SERIAL, "\r\n");
 
     if(status != EMBER_SUCCESS){
       emberSerialGuaranteedPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
@@ -932,11 +963,11 @@ static void applicationTick(void) {
     else {
       // sleepy sensors hibernate in between sending data
 #ifndef MOBILE_SENSOR_APP
-      if(dataMode == DATA_MODE_TEST) {
-        sleepDurationAttempted = (SEND_DATA_RATE/2);
-      } else {
+//      if(dataMode == DATA_MODE_TEST) {
+//        sleepDurationAttempted = (SEND_DATA_RATE/2);
+//      } else {
         sleepDurationAttempted = SEND_DATA_RATE;
-      }
+//      }
 #else
       // When mobile sensors wake up they will need to find a sink
       // again, and when they do that they will send data immediately.
@@ -949,33 +980,33 @@ static void applicationTick(void) {
         // sleep and then poll when we wake up
         sensorFullSleep(&sleepDuration, HIBERNATE);
         appPoll();
-        // add additional sleep before sending data in test mode
-        if(dataMode == DATA_MODE_TEST) {
-          // Use a separate loop so that we can prevent the normal app events
-          //  from running.  However, in order to properly idle the processor
-          //  we must declare the event inactive, while still run the task.
-          emberEventControlSetInactive(appEvent);
-          while(TRUE) {
-            halResetWatchdog();
-            emberTick();
-            emberRunTask(appTask);
-
-            INTERRUPTS_OFF();
-            if(emberOkToHibernate()) {
-              sleepDuration = sleepDurationAttempted;
-              sensorFullSleep(&sleepDuration, HIBERNATE);
-              break;
-            } else {
-              emberMarkTaskIdle(appTask);
-              // since ideally we want to deep sleep make sure no other task 
-              //   allows the processor to idle before we get to check if its 
-              //   ok to deep sleep again or not.
-              emberMarkTaskActive(appTask);
-            }
-          }
-          // Now we can allow the normal app events to run immediately.
-          emberEventControlSetActive(appEvent);
-        }
+//        // add additional sleep before sending data in test mode
+//        if(dataMode == DATA_MODE_TEST) {
+//          // Use a separate loop so that we can prevent the normal app events
+//          //  from running.  However, in order to properly idle the processor
+//          //  we must declare the event inactive, while still run the task.
+//          emberEventControlSetInactive(appEvent);
+//          while(TRUE) {
+//            halResetWatchdog();
+//            emberTick();
+//            emberRunTask(appTask);
+//
+//            INTERRUPTS_OFF();
+//            if(emberOkToHibernate()) {
+//              sleepDuration = sleepDurationAttempted;
+//              sensorFullSleep(&sleepDuration, HIBERNATE);
+//              break;
+//            } else {
+//              emberMarkTaskIdle(appTask);
+//              // since ideally we want to deep sleep make sure no other task 
+//              //   allows the processor to idle before we get to check if its 
+//              //   ok to deep sleep again or not.
+//              emberMarkTaskActive(appTask);
+//            }
+//          }
+//          // Now we can allow the normal app events to run immediately.
+//          emberEventControlSetActive(appEvent);
+//        }
       } else {
         emberMarkTaskIdle(appTask);
         // since ideally we want to deep sleep make sure no other task 
@@ -1017,11 +1048,13 @@ static void applicationTick(void) {
   // MAC to assert in zigbee-stack.c in emberStackPowerDown(). The 
   // application sleeps more aggressively here, hard coding
   // to 60 seconds and not basing the sleep time on the SEND_DATA_RATE
+  //emberSerialGuaranteedPrintf(APP_SERIAL, "emberNetworkState() %x  \r\n", emberNetworkState());
   ATOMIC(
     if ((emberNetworkState() == EMBER_NO_NETWORK) &&
         (sleepWhenNotJoined == TRUE) &&
         emberOkToHibernate())
     {
+      emberSerialGuaranteedPrintf(APP_SERIAL, "not joined and ok to hibernate, so sleep  \r\n");
       sleepDurationAttempted = 240; // 60 seconds
       sleepDuration = sleepDurationAttempted;
       sensorFullSleep(&sleepDuration, HIBERNATE);
