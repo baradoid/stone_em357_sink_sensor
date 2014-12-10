@@ -1043,6 +1043,7 @@ void configRfFrontEnd()
   }
   
  // emberSerialPrintf(APP_SERIAL,  "tx power %d dBm.  \r\n", emberGetRadioPower());
+  emberSerialWaitSend(APP_SERIAL);
 }
 
 
@@ -1124,13 +1125,21 @@ void processCountes()
 void processSleepyCountes()
 {
   static int16u lastGPIOPollTime = 0;
-  int16u time = halCommonGetInt16uMillisecondTick();
+  int32u time = halCommonGetInt32uMillisecondTick();
   if((int16u)(time - lastGPIOPollTime) > 50){
       lastGPIOPollTime = time;  
     
     for(int i=0; i<4; i++){
       processCounter(&counterAttr[i], TYPE_SLEEPY);
-    }
+    }  
+    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
+                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
+                                                                  counterAttr[0].counterValue,
+                                                                  counterAttr[1].counterValue,
+                                                                  counterAttr[2].counterValue,
+                                                                  counterAttr[3].counterValue);
+    emberSerialWaitSend(APP_SERIAL);
+      
   }
 }
 

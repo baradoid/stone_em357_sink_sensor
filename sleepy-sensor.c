@@ -341,6 +341,9 @@ void main(void)
 
     applicationTick(); // Power save, watch timeouts
 
+    //printTimeStamp();
+    //emberSerialPrintf(APP_SERIAL, " \r\n");   
+    //emberSerialWaitSend(APP_SERIAL);
     #ifdef DEBUG
       emberSerialBufferTick();   // Needed for debug which uses buffered serial
     #endif
@@ -813,7 +816,9 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
 
   if(dataMode != DATA_MODE_TEST) {
     // message to know we are awake
-    emberSerialGuaranteedPrintf(APP_SERIAL, "wakeup %x halGetWakeInfo %4x ", status, halGetWakeInfo()); 
+    emberSerialPrintf(APP_SERIAL, "wakeup %x halGetWakeInfo %4x ", status, halGetWakeInfo()); 
+    emberSerialPrintf(APP_SERIAL, "\r\n         ");
+    printTimeStamp();
 
 // * - [31] = WakeInfoValid
 // * - [30] = SleepSkipped
@@ -828,23 +833,24 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
     //if(halGetWakeInfo()&(1<<31))
     //    emberSerialPrintf((APP_SERIAL, "WakeInfoValid", status, halGetWakeInfo()); 
     if(halGetWakeInfo()&(1<<30))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "SleepSkipped"); 
+        emberSerialPrintf(APP_SERIAL, "SleepSkipped"); 
     if(halGetWakeInfo()&(1<<29))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "CSYSPWRUPREQ"); 
+        emberSerialPrintf(APP_SERIAL, "CSYSPWRUPREQ"); 
     if(halGetWakeInfo()&(1<<28))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "CDBGPWRUPREQ"); 
+        emberSerialPrintf(APP_SERIAL, "CDBGPWRUPREQ"); 
     if(halGetWakeInfo()&(1<<27))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_WAKECORE"); 
+        emberSerialPrintf(APP_SERIAL, "PWRUP_WAKECORE"); 
     if(halGetWakeInfo()&(1<<26))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_SLEEPTMRWRAP"); 
+        emberSerialPrintf(APP_SERIAL, "PWRUP_SLEEPTMRWRAP"); 
     if(halGetWakeInfo()&(1<<25))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_SLEEPTMRCOMPB"); 
+        emberSerialPrintf(APP_SERIAL, "PWRUP_SLEEPTMRCOMPB"); 
     if(halGetWakeInfo()&(1<<24))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "PWRUP_SLEEPTMRCOMPA"); 
+        emberSerialPrintf(APP_SERIAL, "PWRUP_SLEEPTMRCOMPA"); 
     if(halGetWakeInfo()&(0xFFFFFF))
-        emberSerialGuaranteedPrintf(APP_SERIAL, "GPIO activity"); 
+        emberSerialPrintf(APP_SERIAL, "GPIO activity"); 
     
-    emberSerialGuaranteedPrintf(APP_SERIAL, "\r\n");
+    emberSerialPrintf(APP_SERIAL, "\r\n");
+    emberSerialWaitSend(APP_SERIAL);
 
     if(status != EMBER_SUCCESS){
       emberSerialGuaranteedPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
@@ -1023,21 +1029,21 @@ static void applicationTick(void) {
   static int16u cntPollTime = 0;
   time = halCommonGetInt16uMillisecondTick();
 
-  if((int16u)(time - cntPollTime) > 2000){  
-    cntPollTime = time;
-    emberSerialPrintf(APP_SERIAL,
-                      "irqDcnt: %d \r\n ", irqDCnt);
-  }
+//  if((int16u)(time - cntPollTime) > 2000){  
+//    cntPollTime = time;
+//    emberSerialPrintf(APP_SERIAL,
+//                      "irqDcnt: %d \r\n ", irqDCnt);
+//  }
   
   static int16u cntrPrintTime = 0;
   if((int16u)(time - cntrPrintTime) > 1000){ 
     cntrPrintTime = time;
-    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
-                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
-                                                                  counterAttr[0].counterValue,
-                                                                  counterAttr[1].counterValue,
-                                                                  counterAttr[2].counterValue,
-                                                                  counterAttr[3].counterValue);
+//    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
+//                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
+//                                                                  counterAttr[0].counterValue,
+//                                                                  counterAttr[1].counterValue,
+//                                                                  counterAttr[2].counterValue,
+//                                                                  counterAttr[3].counterValue);
   }
   
   // if we are not joined and should sleep (which is turned on with
@@ -1828,22 +1834,22 @@ void printHelp(void)
 // *******************************************************************
 
 
-void halIrqAIsr(void)
-{
-    PRINT("IrqAIsr\r\n");
-}
-
-void halIrqCIsr(void)
-{
-    PRINT("IrqCIsr\r\n");
-}
-
-void halIrqDIsr(void)
-{
-  INT_MISS = INT_MISSIRQD;     //clear missed BUTTON3 interrupt flag
-  INT_GPIOFLAG = INT_IRQDFLAG; //clear top level BUTTON3 interrupt flag
-  //INT_CFGCLR = INT_IRQD;
-  irqDCnt++;
-  //PRINT("IrqDIsr\r\n");
-}
+//void halIrqAIsr(void)
+//{
+//    PRINT("IrqAIsr\r\n");
+//}
+//
+//void halIrqCIsr(void)
+//{
+//    PRINT("IrqCIsr\r\n");
+//}
+//
+//void halIrqDIsr(void)
+//{
+//  INT_MISS = INT_MISSIRQD;     //clear missed BUTTON3 interrupt flag
+//  INT_GPIOFLAG = INT_IRQDFLAG; //clear top level BUTTON3 interrupt flag
+//  //INT_CFGCLR = INT_IRQD;
+//  irqDCnt++;
+//  //PRINT("IrqDIsr\r\n");
+//}
 
