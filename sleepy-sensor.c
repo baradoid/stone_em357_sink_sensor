@@ -1023,6 +1023,27 @@ static void applicationTick(void) {
       }
     }
   }
+  else{
+      switch(emberNetworkState()){
+      case EMBER_NO_NETWORK:
+        emberSerialPrintf(APP_SERIAL, "EMBER_NO_NETWORK\r\n");
+        break;
+      case EMBER_JOINING_NETWORK:
+        emberSerialPrintf(APP_SERIAL, "EMBER_JOINING_NETWORK\r\n");
+        break;
+      case EMBER_JOINED_NETWORK:
+        emberSerialPrintf(APP_SERIAL, "EMBER_JOINED_NETWORK\r\n");
+        break;
+      case EMBER_JOINED_NETWORK_NO_PARENT:
+        emberSerialPrintf(APP_SERIAL, "EMBER_JOINED_NETWORK_NO_PARENT\r\n");
+        break;
+      case EMBER_LEAVING_NETWORK:
+        emberSerialPrintf(APP_SERIAL, "EMBER_LEAVING_NETWORK\r\n");
+        break;
+      default:
+        emberSerialPrintf(APP_SERIAL, "unknown %x\r\n", emberNetworkState());
+      }
+  }
 
     
   int16u time;
@@ -1045,7 +1066,7 @@ static void applicationTick(void) {
 //                                                                  counterAttr[2].counterValue,
 //                                                                  counterAttr[3].counterValue);
   }
-  
+       
   // if we are not joined and should sleep (which is turned on with
   // a serial cmd) then sleep here. We still check emberOkToHibernate()
   // since it is possible that the stack is performing an energy or active 
@@ -1057,16 +1078,18 @@ static void applicationTick(void) {
   // to 60 seconds and not basing the sleep time on the SEND_DATA_RATE
   //emberSerialGuaranteedPrintf(APP_SERIAL, "emberNetworkState() %x  \r\n", emberNetworkState());
   ATOMIC(
-    if ((emberNetworkState() == EMBER_NO_NETWORK) &&
+    if (
+        ((emberNetworkState() == EMBER_NO_NETWORK) || (emberNetworkState() == EMBER_JOINED_NETWORK_NO_PARENT)) &&
         (sleepWhenNotJoined == TRUE) &&
         emberOkToHibernate())
     {
-      emberSerialGuaranteedPrintf(APP_SERIAL, "not joined and ok to hibernate, so sleep  \r\n");
+      emberSerialPrintf(APP_SERIAL, "not joined and ok to hibernate, so sleep  \r\n");
       sleepDurationAttempted = 240; // 60 seconds
       sleepDuration = sleepDurationAttempted;
       sensorFullSleep(&sleepDuration, HIBERNATE);
+      buttonZeroPress = TRUE;
     }
-  )
+  )  
 
   emberRunTask(appTask);
 }
