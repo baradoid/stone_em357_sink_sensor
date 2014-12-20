@@ -1321,3 +1321,99 @@ void sendDataCommon(int8u type) {
 //                    "TX [DATA] status: 0x%x  data: 0x%2x / len 0x%x\r\n",
 //                    status, data, sendDataSize + EUI64_SIZE);
 }
+
+
+void joinNetwork(EmberNodeType nodeType)
+{
+  // structure to store necessary network parameters of the node
+  // (which are panId, enableRelay, radioTxPower, and radioChannel)
+  EmberNetworkParameters networkParams;
+  EmberStatus status;
+  int8u extendedPanId[EXTENDED_PAN_ID_SIZE] = APP_EXTENDED_PANID;
+
+  emberSerialPrintf(APP_SERIAL, "BUTTON0: join network\r\n");
+  emberSerialWaitSend(APP_SERIAL);
+
+  // Set the security keys and the security state - specific to this 
+  // application, all variants of this application (sink, sensor, 
+  // sleepy-sensor, mobile-sensor) need to use the same security setup.
+  // This function is in app/sensor/common.c. This function should only
+  // be called when a network is formed as the act of setting the key
+  // sets the frame counters to 0. On reset and networkInit this should
+  // not be called.
+  sensorCommonSetupSecurity();
+        
+#ifdef USE_HARDCODED_NETWORK_SETTINGS
+
+  MEMSET(&networkParams, 0, sizeof(EmberNetworkParameters));
+  // use the settings from app/sensor/common.h
+  networkParams.panId = APP_PANID;
+  networkParams.radioTxPower = APP_POWER;
+  networkParams.radioChannel = APP_CHANNEL;
+  MEMCOPY(networkParams.extendedPanId, 
+    extendedPanId, 
+    EXTENDED_PAN_ID_SIZE);
+    networkParams.joinMethod = EMBER_USE_MAC_ASSOCIATION;
+
+  // tell the user what is going on
+  emberSerialPrintf(APP_SERIAL,
+    "SENSOR APP: joining network - ");
+  printNetInfo(&networkParams);
+
+  // attempt to join the network
+  status = emberJoinNetwork(nodeType, &networkParams);
+  if (status != EMBER_SUCCESS) {
+    emberSerialPrintf(APP_SERIAL,
+    "error returned from emberJoinNetwork: 0x%x\r\n", status);
+  } else {
+    emberSerialPrintf(APP_SERIAL, "waiting for stack up...\r\n");
+  }
+
+  // the else case means we are NOT using hardcoded settings and are
+  // picking a random PAN ID and channel and either using
+  // APP_EXTENDED_PANID (from app/sensor/common.h) for the 
+  // extended PAN ID or picking a random one if APP_EXTENDED_PANID
+  // is "0".
+#else 
+
+  // tell the user what is going on
+  emberSerialPrintf(APP_SERIAL,
+    "SENSOR APP: scanning for channel and panid\r\n");
+
+  // Use a function from app/util/common/form-and-join.c
+  // that scans and selects a beacon that has:
+  // 1) allow join=TRUE
+  // 2) matches the stack profile that the app is using
+  // 3) matches the extended PAN ID passed in unless "0" is passed
+  // Once a beacon match is found, emberJoinableNetworkFoundHandler 
+  // is called.
+  emberScanForJoinableNetwork(EMBER_ALL_802_15_4_CHANNELS_MASK,
+    (int8u*) extendedPanId);
+#endif // USE_HARDCODED_NETWORK_SETTINGS
+
+}
+
+void joinNetworkAsSleepySensor()
+{
+  joinNetwork(EMBER_SLEEPY_END_DEVICE);
+}
+
+void joinNetworkAsRouter()
+{
+  joinNetwork(EMBER_ROUTER);
+}
+
+
+// *******************************************************************
+
+void printNetInfo(EmberNetworkParameters * networkParameters)
+{
+  emberSerialPrintf(APP_SERIAL,
+                    "channel 0x%x, panid 0x%2x, tx power %d, ",
+                    networkParameters->radioChannel,
+                    networkParameters->panId,
+                    networkParameters->radioTxPower);
+  printExtendedPanId(APP_SERIAL, networkParameters->extendedPanId);
+  emberSerialPrintf(APP_SERIAL, "\r\n");
+  emberSerialWaitSend(APP_SERIAL);
+}

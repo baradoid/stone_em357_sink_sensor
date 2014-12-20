@@ -298,3 +298,7 @@ void printTimeStamp();
 
 void sendDataCommon(int8u type);
 
+void joinNetworkAsSleepySensor();
+void joinNetworkAsRouter();
+
+void printNetInfo(EmberNetworkParameters * networkParameters);
