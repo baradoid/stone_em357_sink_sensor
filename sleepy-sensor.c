@@ -709,8 +709,7 @@ static int16u numQsParentGone = 0;
 // data, and how many quarter-seconds it has been since the parent has
 // responded to a poll.
 void emberPollCompleteHandler(EmberStatus status)
-{
-
+{  
   switch (status) {
   case EMBER_SUCCESS:
     if(dataMode != DATA_MODE_TEST) {
@@ -766,10 +765,18 @@ void appPoll(void)
   EmberStatus status;
   status = emberPollForData();
 
+  //EmberEUI64 parentEUI;
+  emberSerialPrintf(APP_SERIAL, "poll parent ");
+  //MEMCOPY(parentEUI, emberGetParentEui64(), EUI64_SIZE);
+  printEUI64(APP_SERIAL, (EmberEUI64*)emberGetParentEui64()); 
+  emberSerialPrintf(APP_SERIAL, "  \r\n");
+  
   if (status != EMBER_SUCCESS) {
     emberSerialPrintf(APP_SERIAL, "poll: 0x%x\r\n", status);
     emberSerialWaitSend(APP_SERIAL);
   }
+  
+
 }
 
 
