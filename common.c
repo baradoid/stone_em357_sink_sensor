@@ -217,6 +217,20 @@ void printNodeInfo(void) {
 
 }
 
+void printNetInfo(EmberNetworkParameters * networkParameters)
+{
+  emberSerialPrintf(APP_SERIAL,
+                    "channel 0x%x, panid 0x%2x, tx power %d, ",
+                    networkParameters->radioChannel,
+                    networkParameters->panId,
+                    networkParameters->radioTxPower);
+  printExtendedPanId(APP_SERIAL, networkParameters->extendedPanId);
+  emberSerialPrintf(APP_SERIAL, "\r\n");
+  emberSerialWaitSend(APP_SERIAL);
+}
+
+// *******************************************************************
+
 #if EMBER_SECURITY_LEVEL == 5
 /******************************************************************************
 // Print the Keys
@@ -1404,16 +1418,4 @@ void joinNetworkAsRouter()
 }
 
 
-// *******************************************************************
 
-void printNetInfo(EmberNetworkParameters * networkParameters)
-{
-  emberSerialPrintf(APP_SERIAL,
-                    "channel 0x%x, panid 0x%2x, tx power %d, ",
-                    networkParameters->radioChannel,
-                    networkParameters->panId,
-                    networkParameters->radioTxPower);
-  printExtendedPanId(APP_SERIAL, networkParameters->extendedPanId);
-  emberSerialPrintf(APP_SERIAL, "\r\n");
-  emberSerialWaitSend(APP_SERIAL);
-}

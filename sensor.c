@@ -878,11 +878,12 @@ void checkButtonEvents(void) {
 
       // if already joined, turn allow joining on
       case EMBER_JOINED_NETWORK:
-        emberSerialPrintf(APP_SERIAL, 
-                          "BUTTON0: turn permit join ON for 60 seconds\r\n");
+        //emberSerialPrintf(APP_SERIAL, 
+        //                  "BUTTON0: turn permit join ON for 60 seconds\r\n");
 
         // turn allow join on
-        emberPermitJoining(60);
+        EmberStatus stat = emberPermitJoining(60);
+        //emberSerialPrintf(APP_SERIAL, "emberPermitJoining %x\r\n", stat);
         break;
 
       // if leaving, do nothing
