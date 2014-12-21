@@ -450,6 +450,11 @@ boolean parentLaunchBootload = FALSE;
 
 #endif // USE_BOOTLOADER_LIB
 
+#if defined(SENSOR_APP) || defined(SLEEPY_SENSOR_APP)
+// TRUE when a sink is found
+boolean mainSinkFound = FALSE;
+#endif
+
 #if defined(SENSOR_APP) || defined(SINK_APP)
 // *********************************************************************
 // The follwing section has to do with sending APS messages to sleeping
@@ -462,7 +467,6 @@ void handleSinkQuery(EmberNodeId childId)
   EmberMessageBuffer buffer;
   EmberApsFrame apsFrame;
 
-  if (mainSinkFound == TRUE) {
     EmberStatus status;
 
     // the data - sink long address (EUI), sink short address
@@ -502,7 +506,6 @@ void handleSinkQuery(EmberNodeId childId)
                         childId, status);
       emberSerialWaitSend(APP_SERIAL);
     }
-  }
 }
 
 // bitmasks to tell which children have or have not been sent a
@@ -1032,6 +1035,8 @@ void configRfFrontEnd()
     txPower = -7;
   else
     txPower = 8;
+  
+  //txPower = -40; //DEBUG
       
   emberSerialPrintf(APP_SERIAL,  "tx power %d dBm. try to set tx power to %d dBm ... ", 
                                                                               emberGetRadioPower(),

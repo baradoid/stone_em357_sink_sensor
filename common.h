@@ -160,7 +160,7 @@ void sensorCommonPrint16ByteKey(int8u* key);
 #define APP_POWER   (3)
 
 
-#if defined(SENSOR_APP) || defined(SINK_APP)
+#if (defined(SENSOR_APP) || defined(SINK_APP)|| defined(SLEEPY_SENSOR_APP))
 // ****************************************************************
 // The following function are to support sleepy end devices
 
@@ -181,18 +181,19 @@ void jitMessageStatus(void);
 // sink advertise in response
 void handleSinkQuery(EmberNodeId childId);
 
-#ifdef SINK_APP
-
-#define mainSinkFound TRUE
+#if defined(SINK_APP)
+//#define mainSinkFound TRUE
 #define sinkEUI emberGetEui64()
 #define sinkShortAddress emberGetNodeId()
 
-#else // SENSOR_APP
+#endif
 
+#if defined(SENSOR_APP) || defined(SLEEPY_SENSOR_APP)
+// TRUE when a sink is found
 extern boolean mainSinkFound;
+
 extern EmberEUI64 sinkEUI;
 extern EmberNodeId sinkShortAddress;
-
 #endif
 
 #endif // defined(SENSOR_APP) || defined(SINK_APP)
@@ -302,3 +303,4 @@ void joinNetworkAsSleepySensor();
 void joinNetworkAsRouter();
 
 void printNetInfo(EmberNetworkParameters * networkParameters);
+

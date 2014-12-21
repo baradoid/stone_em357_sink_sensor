@@ -111,7 +111,7 @@ int8u respondTimer = 0;
 #define TIME_TO_WAIT_FOR_SINK_READY 40 // 10 seconds
 
 // set to TRUE when a sink is found
-boolean mainSinkFound = FALSE;
+//boolean mainSinkFound = FALSE;
 boolean waitingToRespond = FALSE;
 
 EmberEUI64 sinkEUI;
@@ -528,8 +528,14 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
   case MSG_SINK_QUERY:
     emberSerialPrintf(APP_SERIAL, "RX [sink query] from: ");
     printEUI64(APP_SERIAL, &eui);
-    emberSerialPrintf(APP_SERIAL, "; processing message\r\n");
-    handleSinkQuery(emberGetSender());
+    if (mainSinkFound == TRUE){
+      emberSerialPrintf(APP_SERIAL, "; processing message\r\n");    
+      handleSinkQuery(emberGetSender());
+    }
+    else{
+      emberSerialPrintf(APP_SERIAL, "; no sink known. Ignoring.\r\n");    
+    }
+    
     break;
     
   case MSG_DATA:

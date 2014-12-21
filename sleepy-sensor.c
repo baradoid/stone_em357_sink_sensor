@@ -104,7 +104,7 @@ EmberEndpoint emberEndpoints[] = {
 #define TIME_TO_WAIT_FOR_SINK_ADVERTISE 40 // 10 seconds
 
 // TRUE when a sink is found
-boolean mainSinkFound = FALSE;
+//boolean mainSinkFound = FALSE;
 // TRUE when waiting for a transport ACK -  we must nap and poll to get it
 boolean waitingForDataAck = FALSE;
 // TRUE when waiting to receive a sink_ready message, this prevents the sensor
@@ -790,10 +790,10 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
   if(dataMode != DATA_MODE_TEST) {
     // print a message which type of sleep
     if (type == NAP) {
-      emberSerialGuaranteedPrintf(APP_SERIAL, "EVENT: napping...");
+      emberSerialPrintf(APP_SERIAL, "EVENT: napping...");
     }
     if (type == HIBERNATE) {
-      emberSerialGuaranteedPrintf(APP_SERIAL, "EVENT: hibernating...");
+      emberSerialPrintf(APP_SERIAL, "EVENT: hibernating...");
     }
   }
 
@@ -853,7 +853,7 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
     emberSerialWaitSend(APP_SERIAL);
 
     if(status != EMBER_SUCCESS){
-      emberSerialGuaranteedPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
+      emberSerialPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
     }
 
   }
@@ -1057,14 +1057,16 @@ static void applicationTick(void) {
   // to 60 seconds and not basing the sleep time on the SEND_DATA_RATE
   //emberSerialGuaranteedPrintf(APP_SERIAL, "emberNetworkState() %x  \r\n", emberNetworkState());
   ATOMIC(
-    if ((emberNetworkState() == EMBER_NO_NETWORK) &&
+    if ( ((emberNetworkState() == EMBER_NO_NETWORK) || (emberNetworkState() == EMBER_JOINED_NETWORK_NO_PARENT)) &&
         (sleepWhenNotJoined == TRUE) &&
         emberOkToHibernate())
     {
-      emberSerialGuaranteedPrintf(APP_SERIAL, "not joined and ok to hibernate, so sleep  \r\n");
-      sleepDurationAttempted = 240; // 60 seconds
+      emberSerialPrintf(APP_SERIAL, "not joined and ok to hibernate, so sleep  \r\n");
+      //sleepDurationAttempted = 240; // 60 seconds
+      sleepDurationAttempted = 40; // 60 seconds
       sleepDuration = sleepDurationAttempted;
       sensorFullSleep(&sleepDuration, HIBERNATE);
+      buttonZeroPress = TRUE;
     }
   )
 
