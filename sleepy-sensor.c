@@ -104,7 +104,7 @@ EmberEndpoint emberEndpoints[] = {
 #define TIME_TO_WAIT_FOR_SINK_ADVERTISE 40 // 10 seconds
 
 // TRUE when a sink is found
-boolean mainSinkFound = FALSE;
+//boolean mainSinkFound = FALSE;
 // TRUE when waiting for a transport ACK -  we must nap and poll to get it
 boolean waitingForDataAck = FALSE;
 // TRUE when waiting to receive a sink_ready message, this prevents the sensor
@@ -709,8 +709,7 @@ static int16u numQsParentGone = 0;
 // data, and how many quarter-seconds it has been since the parent has
 // responded to a poll.
 void emberPollCompleteHandler(EmberStatus status)
-{
-
+{  
   switch (status) {
   case EMBER_SUCCESS:
     if(dataMode != DATA_MODE_TEST) {
@@ -766,10 +765,18 @@ void appPoll(void)
   EmberStatus status;
   status = emberPollForData();
 
+  //EmberEUI64 parentEUI;
+  emberSerialPrintf(APP_SERIAL, "poll parent ");
+  //MEMCOPY(parentEUI, emberGetParentEui64(), EUI64_SIZE);
+  printEUI64(APP_SERIAL, (EmberEUI64*)emberGetParentEui64()); 
+  emberSerialPrintf(APP_SERIAL, "  \r\n");
+  
   if (status != EMBER_SUCCESS) {
     emberSerialPrintf(APP_SERIAL, "poll: 0x%x\r\n", status);
     emberSerialWaitSend(APP_SERIAL);
   }
+  
+
 }
 
 
@@ -790,10 +797,10 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
   if(dataMode != DATA_MODE_TEST) {
     // print a message which type of sleep
     if (type == NAP) {
-      emberSerialGuaranteedPrintf(APP_SERIAL, "EVENT: napping...");
+      emberSerialPrintf(APP_SERIAL, "EVENT: napping...");
     }
     if (type == HIBERNATE) {
-      emberSerialGuaranteedPrintf(APP_SERIAL, "EVENT: hibernating...");
+      emberSerialPrintf(APP_SERIAL, "EVENT: hibernating...");
     }
   }
 
@@ -853,7 +860,7 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
     emberSerialWaitSend(APP_SERIAL);
 
     if(status != EMBER_SUCCESS){
-      emberSerialGuaranteedPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
+      emberSerialPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
     }
 
   }
@@ -1045,6 +1052,7 @@ static void applicationTick(void) {
       }
   }
 
+
     
   int16u time;
   static int16u cntPollTime = 0;
@@ -1066,7 +1074,7 @@ static void applicationTick(void) {
 //                                                                  counterAttr[2].counterValue,
 //                                                                  counterAttr[3].counterValue);
   }
-       
+
   // if we are not joined and should sleep (which is turned on with
   // a serial cmd) then sleep here. We still check emberOkToHibernate()
   // since it is possible that the stack is performing an energy or active 
@@ -1077,19 +1085,19 @@ static void applicationTick(void) {
   // application sleeps more aggressively here, hard coding
   // to 60 seconds and not basing the sleep time on the SEND_DATA_RATE
   //emberSerialGuaranteedPrintf(APP_SERIAL, "emberNetworkState() %x  \r\n", emberNetworkState());
-  ATOMIC(
-    if (
-        ((emberNetworkState() == EMBER_NO_NETWORK) || (emberNetworkState() == EMBER_JOINED_NETWORK_NO_PARENT)) &&
+
+    if ( ((emberNetworkState() == EMBER_NO_NETWORK) || (emberNetworkState() == EMBER_JOINED_NETWORK_NO_PARENT)) &&
         (sleepWhenNotJoined == TRUE) &&
         emberOkToHibernate())
     {
       emberSerialPrintf(APP_SERIAL, "not joined and ok to hibernate, so sleep  \r\n");
-      sleepDurationAttempted = 240; // 60 seconds
+      //sleepDurationAttempted = 240; // 60 seconds
+      sleepDurationAttempted = 40; // 60 seconds
       sleepDuration = sleepDurationAttempted;
       sensorFullSleep(&sleepDuration, HIBERNATE);
       buttonZeroPress = TRUE;
     }
-  )  
+  )
 
   emberRunTask(appTask);
 }
@@ -1224,11 +1232,6 @@ void appEventHandler(void)
 
 
 void checkButtonEvents(void) {
-  // structure to store necessary network parameters of the node
-  // (which are panId, enableRelay, radioTxPower, and radioChannel)
-  EmberNetworkParameters networkParams;
-  EmberStatus status;
-  int8u extendedPanId[EXTENDED_PAN_ID_SIZE] = APP_EXTENDED_PANID;
 
     // ********************************
     // button 0 is pressed
@@ -1239,70 +1242,7 @@ void checkButtonEvents(void) {
       // if not joined with a network, join
       switch (emberNetworkState()) {
       case EMBER_NO_NETWORK:
-        emberSerialPrintf(APP_SERIAL, "BUTTON0: join network\r\n");
-        emberSerialWaitSend(APP_SERIAL);
-
-        // Set the security keys and the security state - specific to this 
-        // application, all variants of this application (sink, sensor, 
-        // sleepy-sensor, mobile-sensor) need to use the same security setup.
-        // This function is in app/sensor/common.c. This function should only
-        // be called when a network is formed as the act of setting the key
-        // sets the frame counters to 0. On reset and networkInit this should
-        // not be called.
-        sensorCommonSetupSecurity();
-
-        #ifdef USE_HARDCODED_NETWORK_SETTINGS
-        {
-          MEMSET(&networkParams, 0, sizeof(EmberNetworkParameters));
-          // use the settings from app/sensor/common.h          
-          networkParams.panId = APP_PANID;
-          networkParams.radioTxPower = APP_POWER;
-          networkParams.radioChannel = APP_CHANNEL;
-          MEMCOPY(networkParams.extendedPanId, 
-                  extendedPanId, 
-                  EXTENDED_PAN_ID_SIZE);
-          networkParams.joinMethod = EMBER_USE_MAC_ASSOCIATION;
-
-          // tell the user what is going on
-          emberSerialPrintf(APP_SERIAL,
-               "SENSOR APP: joining network - channel 0x%x, panid 0x%2x, ",
-               networkParams.radioChannel, networkParams.panId);
-          printExtendedPanId(APP_SERIAL, networkParams.extendedPanId);
-          emberSerialPrintf(APP_SERIAL, "\r\n");
-          emberSerialWaitSend(APP_SERIAL);
-
-          // attempt to join the network
-          status = emberJoinNetwork(applicationType, 
-                                    &networkParams); 
-          if (status != EMBER_SUCCESS) {
-            emberSerialPrintf(APP_SERIAL,
-              "error returned from emberJoinNetwork: 0x%x\r\n", status);
-          } else {
-            emberSerialPrintf(APP_SERIAL, "waiting for stack up...\r\n");
-          }
-        }
-
-        // the else case means we are NOT using hardcoded settings and are
-        // picking a random PAN ID and channel and either using
-        // APP_EXTENDED_PANID (from app/sensor/common.h) for the 
-        // extended PAN ID or picking a random one if APP_EXTENDED_PANID
-        // is "0".
-        #else
-          // tell the user what is going on
-          emberSerialPrintf(APP_SERIAL,
-                            "SENSOR APP: scanning for channel and panid\r\n");
-
-          // Use a function from app/util/common/form-and-join.c
-          // that scans and selects a beacon that has:
-          // 1) allow join=TRUE
-          // 2) matches the stack profile that the app is using
-          // 3) matches the extended PAN ID passed in unless "0" is passed
-          // Once a beacon match is found, emberJoinableNetworkFoundHandler
-          // is called.
-          emberScanForJoinableNetwork(EMBER_ALL_802_15_4_CHANNELS_MASK, 
-                                      (int8u *) extendedPanId);
-
-        #endif // USE_HARDCODED_NETWORK_SETTINGS
+        joinNetworkAsSleepySensor();
         break;
 
       // if in the middle of joining, do nothing

@@ -81,6 +81,7 @@
   #include "phy/bridge/zigbee-bridge-internal.h"
  #endif//BRIDGE_TRACE
 
+
  static const char* brgControlNames[BRG_CONTROL_ITEMS] = {
         "Normal", "Radio Only", "Bridge only", "Radio and Bridge",
  };
@@ -179,6 +180,7 @@ void sinkInit(void);
 #define SINK_USE_NETWORK_INIT 2
 #define SINK_USE_SCAN_UTILS   3
 int8u networkFormMethod = SINK_FORM_NEW_NETWORK;
+
 
 //
 // *******************************************************************
@@ -1514,7 +1516,6 @@ void printHelp(void)
 #endif//BRIDGE_TRACE
 #endif//PHY_BRIDGE
 }
-
 
 // End utility functions
 // *******************************************************************
