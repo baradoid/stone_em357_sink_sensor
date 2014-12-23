@@ -568,6 +568,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
 // this is called when the stack status changes
 void emberStackStatusHandler(EmberStatus status)
 {
+  //EmberStatus permJoinStat;
   switch (status) {
   case EMBER_NETWORK_UP:
     emberSerialPrintf(APP_SERIAL,
@@ -588,6 +589,16 @@ void emberStackStatusHandler(EmberStatus status)
     // Add the multicast group to the multicast table - this is done 
     // after the stack comes up
     addMulticastGroup();
+//    permJoinStat = emberPermitJoining(0xff);
+//    switch(permJoinStat){
+//      case EMBER_SUCCESS:
+//        emberSerialPrintf(APP_SERIAL, "emberPermitJoining EMBER_SUCCESS \r\n");
+//        break;
+//      default:
+//        emberSerialPrintf(APP_SERIAL, "emberPermitJoining %x \r\n", permJoinStat);
+//        break;
+//    }
+    
     break;
 
   case EMBER_NETWORK_DOWN:
@@ -862,25 +873,27 @@ static void applicationTick(void) {
 }
 
 
-void checkButtonEvents(void) {
+void checkButtonEvents(void) 
+{
+  //EmberStatus stat;
 
   // ********************************
     // button 0 is pressed
     // ********************************
-    if (buttonZeroPress) {
-      buttonZeroPress = FALSE;
+  if (buttonZeroPress) {
+    buttonZeroPress = FALSE;
 
       // if not joined with a network, join
-      switch (emberNetworkState()) {
+    switch (emberNetworkState()) {
       case EMBER_NO_NETWORK:
         joinNetworkAsRouter();
-        break;
+      break;
 
       // if in the middle of joining, do nothing
       case EMBER_JOINING_NETWORK:
         emberSerialPrintf(APP_SERIAL, 
                           "BUTTON0: app already trying to join\r\n");
-        break;
+      break;
 
       // if already joined, turn allow joining on
       case EMBER_JOINED_NETWORK:
@@ -888,16 +901,17 @@ void checkButtonEvents(void) {
         //                  "BUTTON0: turn permit join ON for 60 seconds\r\n");
 
         // turn allow join on
-        EmberStatus stat = emberPermitJoining(60);
-        //emberSerialPrintf(APP_SERIAL, "emberPermitJoining %x\r\n", stat);
-        break;
+
+      //EmberStatus stat = emberPermitJoining(60);
+      //emberSerialPrintf(APP_SERIAL, "emberPermitJoining %x\r\n", stat);
+      break;
 
       // if leaving, do nothing
       case EMBER_LEAVING_NETWORK:
-        emberSerialPrintf(APP_SERIAL, "BUTTON0: app leaving, no action\r\n");
-        break;
-      }
+      emberSerialPrintf(APP_SERIAL, "BUTTON0: app leaving, no action\r\n");
+      break;
     }
+  }
 
     // ********************************
     // button 1 is pressed

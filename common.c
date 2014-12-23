@@ -1165,7 +1165,14 @@ void processSleepyCountes()
 
 boolean isAcPower()
 {
-  return (GPIO_PAIN&PA0_MASK)!=0;
+#if defined(SENSOR_APP)
+  return TRUE;
+#endif
+#if defined(SLEEPY_SENSOR_APP)
+  return FALSE;
+#endif
+  
+  //return (GPIO_PAIN&PA0_MASK)!=0;
 }
 
 
@@ -1178,9 +1185,9 @@ boolean isAcPower()
 // The type of data sent depends on the dataMode variable.
 void sendDataCommon(int8u type) {
   EmberApsFrame apsFrame;
-  int16u data;
-  int16s fvolts;
-  int32s tempC;
+  //int16u data;
+  //int16s fvolts;
+  //int32s tempC;
   int8u maximumPayloadLength;
   EmberStatus status;
   EmberMessageBuffer buffer;
