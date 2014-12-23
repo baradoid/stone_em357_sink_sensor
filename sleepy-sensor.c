@@ -1085,7 +1085,7 @@ static void applicationTick(void) {
   // application sleeps more aggressively here, hard coding
   // to 60 seconds and not basing the sleep time on the SEND_DATA_RATE
   //emberSerialGuaranteedPrintf(APP_SERIAL, "emberNetworkState() %x  \r\n", emberNetworkState());
-
+  ATOMIC(
     if ( ((emberNetworkState() == EMBER_NO_NETWORK) || (emberNetworkState() == EMBER_JOINED_NETWORK_NO_PARENT)) &&
         (sleepWhenNotJoined == TRUE) &&
         emberOkToHibernate())
