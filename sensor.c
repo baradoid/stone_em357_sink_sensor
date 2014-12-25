@@ -120,7 +120,7 @@ EmberNodeId sinkShortAddress;
 boolean waitingForSinkReadyMessage = FALSE;
 int8u timeToWaitForSinkReadyMessage = TIME_TO_WAIT_FOR_SINK_READY;
 
-int8u sendDataCountdown = SEND_DATA_RATE;
+int16u sendDataCountdown = SEND_DATA_RATE;
 
 // "dataMode" controls what type of data the sensor sends to the sink.
 // This can be changed using the serial input commands. The default 
@@ -187,7 +187,7 @@ void appSetLEDsToInitialState(void);
 void appSetLEDsToRunningState(void);
 int32s voltsToCelsius (int16u voltage);
 int16u toBCD(int16u number);
-void readAndPrintSensorData(void);
+//void readAndPrintSensorData(void);
 void printCounters(void);
 PGM_P titleStrings[] = {
       EMBER_COUNTER_STRINGS
@@ -1187,7 +1187,7 @@ void processSerialInput(void) {
 
       // read and print sensor data
     case 's':
-      readAndPrintSensorData();
+      //readAndPrintSensorData();
       break;
 
       // read and print counter data
@@ -1387,42 +1387,42 @@ void printHelp(void)
 // Function to read data from the ADC, do conversions to volts and 
 // BCD temp and print to the serial port 
 
-void readAndPrintSensorData()
-{
-  int16u value;
-  int16s fvolts;
-  int32s tempC, tempF;
-  int8u str[20];
-  EmberStatus readStatus;
-  
-  emberSerialPrintf(APP_SERIAL, "Printing sensor data...\r\n");
-  halStartAdcConversion(ADC_USER_APP, ADC_REF_INT, TEMP_SENSOR_ADC_CHANNEL, // ADC_SOURCE_VDD_PADS_GND,
-                        ADC_CONVERSION_TIME_US_256);
-  emberSerialWaitSend(APP_SERIAL);
-  readStatus = halReadAdcBlocking(ADC_USER_APP, &value);
-  
-  if( readStatus == EMBER_ADC_CONVERSION_DONE) {
-    emberSerialPrintf(APP_SERIAL, "ADC Voltage V = %d\r\n", halMeasureVdd(ADC_CONVERSION_TIME_US_256));
-    
-    fvolts = halConvertValueToVolts(value / TEMP_SENSOR_SCALE_FACTOR);
-    formatFixed(str, (int32s)fvolts, 5, 4, TRUE);
-    emberSerialPrintf(APP_SERIAL, "ADC Voltage V = %s\r\n", str);
-
-    tempC = voltsToCelsius(fvolts);
-    formatFixed(str, tempC, 5, 4, TRUE);
-    emberSerialPrintf(APP_SERIAL, "ADC temp = %s celsius, ", str);
-
-    tempF = ((tempC * 9) / 5) + 320000L;
-    formatFixed(str, tempF, 5, 4, TRUE);
-    value = toBCD((int16u)(tempF / 100));
-    emberSerialPrintf(APP_SERIAL, "%sF %2xF)\r\n", str, value);
-    emberSerialWaitSend(APP_SERIAL);
-
-  } else {
-    emberSerialPrintf(APP_SERIAL, "ADC read error: 0x%x\r\n", readStatus);
-    emberSerialWaitSend(APP_SERIAL);
-  }
-}
+//void readAndPrintSensorData()
+//{
+//  int16u value;
+//  int16s fvolts;
+//  int32s tempC, tempF;
+//  int8u str[20];
+//  EmberStatus readStatus;
+//  
+//  emberSerialPrintf(APP_SERIAL, "Printing sensor data...\r\n");
+//  halStartAdcConversion(ADC_USER_APP, ADC_REF_INT, TEMP_SENSOR_ADC_CHANNEL, // ADC_SOURCE_VDD_PADS_GND,
+//                        ADC_CONVERSION_TIME_US_256);
+//  emberSerialWaitSend(APP_SERIAL);
+//  readStatus = halReadAdcBlocking(ADC_USER_APP, &value);
+//  
+//  if( readStatus == EMBER_ADC_CONVERSION_DONE) {
+//    emberSerialPrintf(APP_SERIAL, "ADC Voltage V = %d\r\n", halMeasureVdd(ADC_CONVERSION_TIME_US_256));
+//    
+//    fvolts = halConvertValueToVolts(value / TEMP_SENSOR_SCALE_FACTOR);
+//    formatFixed(str, (int32s)fvolts, 5, 4, TRUE);
+//    emberSerialPrintf(APP_SERIAL, "ADC Voltage V = %s\r\n", str);
+//
+//    tempC = voltsToCelsius(fvolts);
+//    formatFixed(str, tempC, 5, 4, TRUE);
+//    emberSerialPrintf(APP_SERIAL, "ADC temp = %s celsius, ", str);
+//
+//    tempF = ((tempC * 9) / 5) + 320000L;
+//    formatFixed(str, tempF, 5, 4, TRUE);
+//    value = toBCD((int16u)(tempF / 100));
+//    emberSerialPrintf(APP_SERIAL, "%sF %2xF)\r\n", str, value);
+//    emberSerialWaitSend(APP_SERIAL);
+//
+//  } else {
+//    emberSerialPrintf(APP_SERIAL, "ADC read error: 0x%x\r\n", readStatus);
+//    emberSerialWaitSend(APP_SERIAL);
+//  }
+//}
 
 // Print the values of the internal counters
 
