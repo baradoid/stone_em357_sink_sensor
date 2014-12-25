@@ -1092,7 +1092,8 @@ static void applicationTick(void) {
     {
       emberSerialPrintf(APP_SERIAL, "not joined and ok to hibernate, so sleep  \r\n");
       //sleepDurationAttempted = 240; // 60 seconds
-      sleepDurationAttempted = 40; // 60 seconds
+      //sleepDurationAttempted = 40; // 10 seconds
+      sleepDurationAttempted = 7200; // 30 min
       sleepDuration = sleepDurationAttempted;
       sensorFullSleep(&sleepDuration, HIBERNATE);
       buttonZeroPress = TRUE;
