@@ -14,7 +14,7 @@ extern int16u ticksSinceLastHeard[];
 #endif
 
 #ifdef SENSOR_APP
-void printDataMode(void);
+//void printDataMode(void);
 #endif
 
 
@@ -207,7 +207,7 @@ void printNodeInfo(void) {
                     EMBER_SECURITY_LEVEL);
   emberSerialWaitSend(APP_SERIAL);
 #ifdef SENSOR_APP
-  printDataMode();
+//  printDataMode();
 #endif
 
 #ifdef DEBUG
@@ -1430,4 +1430,25 @@ void joinNetworkAsRouter()
 }
 
 
+
+//void printDataMode(void) 
+//{
+//  switch (dataMode) {
+//  case DATA_MODE_RANDOM:
+//    emberSerialPrintf(APP_SERIAL, "data mode [random]\r\n");
+//    break;
+//  case DATA_MODE_VOLTS:
+//    emberSerialPrintf(APP_SERIAL, "data mode [volts]\r\n");
+//    break;
+//  case DATA_MODE_TEMP:
+//    emberSerialPrintf(APP_SERIAL, "data mode [temp]\r\n");
+//    break;
+//  case DATA_MODE_BCD_TEMP:
+//    emberSerialPrintf(APP_SERIAL, "data mode [BCD temp]\r\n");
+//    break;
+//  default:
+//    emberSerialPrintf(APP_SERIAL, "data mode [unknown]\r\n");
+//    break;
+//  }
+//}
 

@@ -135,7 +135,7 @@ int16u sendDataCountdown = SEND_DATA_RATE;
 #define DATA_MODE_BCD_TEMP 3   // send the temp reading as binary coded data
 
 // default to human readable format: i.e. 0x3019 means 30.19 celsius
-int8u dataMode = DATA_MODE_BCD_TEMP; 
+//int8u dataMode = DATA_MODE_BCD_TEMP; 
 
 
 // buffer for organizing data before we send a message
@@ -1163,26 +1163,26 @@ void processSerialInput(void) {
 
       // send random data
     case 'r':
-      dataMode = DATA_MODE_RANDOM;
-      emberSerialPrintf(APP_SERIAL, "Send random data\r\n");
+      //dataMode = DATA_MODE_RANDOM;
+      //emberSerialPrintf(APP_SERIAL, "Send random data\r\n");
       break;
 
       // send Temp data
     case 'T':
-      dataMode = DATA_MODE_TEMP;
-      emberSerialPrintf(APP_SERIAL, "Send temp data\r\n");
+      //dataMode = DATA_MODE_TEMP;
+      //emberSerialPrintf(APP_SERIAL, "Send temp data\r\n");
       break;
 
       // send volts data
     case 'v':
-      dataMode = DATA_MODE_VOLTS;
-      emberSerialPrintf(APP_SERIAL, "Send volts data\r\n");
+      //dataMode = DATA_MODE_VOLTS;
+      //emberSerialPrintf(APP_SERIAL, "Send volts data\r\n");
       break;
 
       // send bcd temp data
     case 'd':
-      dataMode = DATA_MODE_BCD_TEMP;
-      emberSerialPrintf(APP_SERIAL, "Send bcd temp data\r\n");
+      //dataMode = DATA_MODE_BCD_TEMP;
+      //emberSerialPrintf(APP_SERIAL, "Send bcd temp data\r\n");
       break;
 
       // read and print sensor data
@@ -1466,26 +1466,6 @@ int16u toBCD(int16u number)
   return number;
 }
 
-void printDataMode(void) 
-{
-  switch (dataMode) {
-  case DATA_MODE_RANDOM:
-    emberSerialPrintf(APP_SERIAL, "data mode [random]\r\n");
-    break;
-  case DATA_MODE_VOLTS:
-    emberSerialPrintf(APP_SERIAL, "data mode [volts]\r\n");
-    break;
-  case DATA_MODE_TEMP:
-    emberSerialPrintf(APP_SERIAL, "data mode [temp]\r\n");
-    break;
-  case DATA_MODE_BCD_TEMP:
-    emberSerialPrintf(APP_SERIAL, "data mode [BCD temp]\r\n");
-    break;
-  default:
-    emberSerialPrintf(APP_SERIAL, "data mode [unknown]\r\n");
-    break;
-  }
-}
 
 // End utility functions
 // *******************************************************************
