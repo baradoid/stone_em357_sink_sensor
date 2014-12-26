@@ -816,17 +816,17 @@ static void applicationTick(void) {
       if (timeBeforeSinkAdvertise == 2) {
         status = emberSendManyToOneRouteRequest(concentratorType,
                                                 10);        // radius
-        printTimeStamp();
-        emberSerialPrintf(APP_SERIAL,
-                          "EVENT: sink send many-to-one route request,"
-                          " status 0x%x\r\n", status);
+//        printTimeStamp();
+//        emberSerialPrintf(APP_SERIAL,
+//                          "EVENT: sink send many-to-one route request,"
+//                          " status 0x%x\r\n", status);
       }
 
       // do the sink advertise (multicast)
       if (timeBeforeSinkAdvertise == 0) {
-        printTimeStamp();
-        emberSerialPrintf(APP_SERIAL,
-            "EVENT: sink automatically advertising to find sensors\r\n");
+        //printTimeStamp();
+        //emberSerialPrintf(APP_SERIAL,
+        //    "EVENT: sink automatically advertising to find sensors\r\n");
         sinkAdvertise();
         timeBeforeSinkAdvertise = TIME_BEFORE_SINK_ADVERTISE;
       }
@@ -1004,9 +1004,9 @@ void sinkAdvertise(void) {
   // done with the packet buffer
   emberReleaseMessageBuffer(buffer);
 
-  printTimeStamp();
-  emberSerialPrintf(APP_SERIAL,
-       "TX [sink advertise], status 0x%x\r\n", status);
+  //printTimeStamp();
+  //emberSerialPrintf(APP_SERIAL,
+  //     "TX [sink advertise], status 0x%x\r\n", status);
 }
 
 
