@@ -341,9 +341,6 @@ void main(void)
 
     applicationTick(); // Power save, watch timeouts
 
-    //printTimeStamp();
-    //emberSerialPrintf(APP_SERIAL, " \r\n");   
-    //emberSerialWaitSend(APP_SERIAL);
     #ifdef DEBUG
       emberSerialBufferTick();   // Needed for debug which uses buffered serial
     #endif
@@ -768,15 +765,37 @@ void appPoll(void)
   //EmberEUI64 parentEUI;
   emberSerialPrintf(APP_SERIAL, "poll parent ");
   //MEMCOPY(parentEUI, emberGetParentEui64(), EUI64_SIZE);
-  printEUI64(APP_SERIAL, (EmberEUI64*)emberGetParentEui64()); 
-  emberSerialPrintf(APP_SERIAL, "  \r\n");
+  printEUI64(APP_SERIAL, (EmberEUI64*)emberGetParentEui64());   
+  emberSerialPrintf(APP_SERIAL, " ... ");
   
-  if (status != EMBER_SUCCESS) {
-    emberSerialPrintf(APP_SERIAL, "poll: 0x%x\r\n", status);
-    emberSerialWaitSend(APP_SERIAL);
-  }
-  
+  //if (status != EMBER_SUCCESS) {
+  //  emberSerialPrintf(APP_SERIAL, "poll: 0x%x\r\n", status);
+  //  emberSerialWaitSend(APP_SERIAL);
+  //}
 
+  switch(status){
+    case EMBER_SUCCESS:
+      emberSerialPrintf(APP_SERIAL, "EMBER_SUCCESS\r\n");
+      break;            
+    case EMBER_INVALID_CALL:
+      emberSerialPrintf(APP_SERIAL, "EMBER_INVALID_CALL\r\n");
+      break;        
+    case EMBER_NOT_JOINED:
+      emberSerialPrintf(APP_SERIAL, "EMBER_NOT_JOINED\r\n");
+      break;        
+    case EMBER_MAC_TRANSMIT_QUEUE_FULL:
+      emberSerialPrintf(APP_SERIAL, "EMBER_MAC_TRANSMIT_QUEUE_FULL\r\n");
+      break;           
+    case EMBER_NO_BUFFERS:
+      emberSerialPrintf(APP_SERIAL, "EMBER_NO_BUFFERS\r\n");
+      break;        
+    case EMBER_ERR_FATAL:
+      emberSerialPrintf(APP_SERIAL, "EMBER_ERR_FATAL\r\n");
+      break;          
+    default:
+      emberSerialPrintf(APP_SERIAL, "poll: 0x%x\r\n", status);
+  }    
+  emberSerialWaitSend(APP_SERIAL);
 }
 
 
@@ -802,7 +821,8 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
     if (type == HIBERNATE) {
       emberSerialPrintf(APP_SERIAL, "EVENT: hibernating...");
     }
-  }
+  }      
+  //emberSerialWaitSend(APP_SERIAL);
 
   // turn off the radio
   emberStackPowerDown();
@@ -861,8 +881,8 @@ void sensorFullSleep(int32u* sleepDuration, int8u type)
 
     if(status != EMBER_SUCCESS){
       emberSerialPrintf(APP_SERIAL, "sleepDuration %d\r\n", *sleepDuration);
-    }
-
+    }    
+    //emberSerialWaitSend(APP_SERIAL);
   }
 }
 
@@ -993,7 +1013,9 @@ static void applicationTick(void) {
       {
         // sleep and then poll when we wake up
         sensorFullSleep(&sleepDuration, HIBERNATE);
+        pintNetState();
         appPoll();
+        pintNetState();
 //        // add additional sleep before sending data in test mode
 //        if(dataMode == DATA_MODE_TEST) {
 //          // Use a separate loop so that we can prevent the normal app events
@@ -1031,25 +1053,8 @@ static void applicationTick(void) {
     }
   }
   else{
-      switch(emberNetworkState()){
-      case EMBER_NO_NETWORK:
-        emberSerialPrintf(APP_SERIAL, "EMBER_NO_NETWORK\r\n");
-        break;
-      case EMBER_JOINING_NETWORK:
-        emberSerialPrintf(APP_SERIAL, "EMBER_JOINING_NETWORK\r\n");
-        break;
-      case EMBER_JOINED_NETWORK:
-        emberSerialPrintf(APP_SERIAL, "EMBER_JOINED_NETWORK\r\n");
-        break;
-      case EMBER_JOINED_NETWORK_NO_PARENT:
-        emberSerialPrintf(APP_SERIAL, "EMBER_JOINED_NETWORK_NO_PARENT\r\n");
-        break;
-      case EMBER_LEAVING_NETWORK:
-        emberSerialPrintf(APP_SERIAL, "EMBER_LEAVING_NETWORK\r\n");
-        break;
-      default:
-        emberSerialPrintf(APP_SERIAL, "unknown %x\r\n", emberNetworkState());
-      }
+    pintNetState();
+    //emberSerialWaitSend(APP_SERIAL);
   }
 
 
@@ -1198,6 +1203,8 @@ void appEventHandler(void)
       // ack the stack will not return TRUE from emberOkToNap
       if (numQsParentGone < 161) {
         //sendData();
+        printTimeStamp();
+        emberSerialPrintf(APP_SERIAL, "sending data \r\n");
         sendDataCommon(TYPE_SLEEPY);
       }
     }
@@ -1294,7 +1301,7 @@ void sendData(void) {
   int8u sendDataSize = SEND_DATA_SIZE;
 
   // get a random piece of data
-  data = halCommonGetRandom();
+  //data = halCommonGetRandom();
 
 #ifdef DEBUG
   emberDebugPrintf("sensor has data ready: 0x%2x \r\n", data);
@@ -1319,12 +1326,12 @@ void sendData(void) {
   // we are doing things slightly different for DATA_MODE_TEST by sending 27
   // bytes of data with APS encryption enable.
   if(dataMode == DATA_MODE_TEST) {
-    sendDataSize = 27;
-    for (i=0; i<sendDataSize; i++) {
-      globalBuffer[i] = HIGH_BYTE(data);
-    }
-    // copy the data into a packet buffer
-    buffer = emberFillLinkedBuffers(globalBuffer, sendDataSize);
+//    sendDataSize = 27;
+//    for (i=0; i<sendDataSize; i++) {
+//      globalBuffer[i] = HIGH_BYTE(data);
+//    }
+//    // copy the data into a packet buffer
+//    buffer = emberFillLinkedBuffers(globalBuffer, sendDataSize);
   } else {
     // sendDataSize must be an even number
     sendDataSize = sendDataSize & 0xFE;

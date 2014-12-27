@@ -1452,3 +1452,27 @@ void joinNetworkAsRouter()
 //  }
 //}
 
+void pintNetState()
+{
+  printTimeStamp();
+  switch(emberNetworkState()){
+    case EMBER_NO_NETWORK:
+      emberSerialPrintf(APP_SERIAL, "EMBER_NO_NETWORK\r\n");
+      break;
+    case EMBER_JOINING_NETWORK:
+      emberSerialPrintf(APP_SERIAL, "EMBER_JOINING_NETWORK\r\n");
+      break;
+    case EMBER_JOINED_NETWORK:
+      emberSerialPrintf(APP_SERIAL, "EMBER_JOINED_NETWORK\r\n");
+      break;
+    case EMBER_JOINED_NETWORK_NO_PARENT:
+      emberSerialPrintf(APP_SERIAL, "EMBER_JOINED_NETWORK_NO_PARENT\r\n");
+      break;
+    case EMBER_LEAVING_NETWORK:
+      emberSerialPrintf(APP_SERIAL, "EMBER_LEAVING_NETWORK\r\n");
+      break;
+    default:
+      emberSerialPrintf(APP_SERIAL, "unknown %x\r\n", emberNetworkState());
+  }
+}
+
