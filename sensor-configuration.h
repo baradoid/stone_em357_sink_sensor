@@ -43,7 +43,7 @@
 // for APS Encryption.  Non-sinks only need one table entry.
 
 #ifdef SINK_APP
-  #define SINK_ADDRESS_TABLE_SIZE              15
+  #define SINK_ADDRESS_TABLE_SIZE              200
   #define SINK_TRUST_CENTER_ADDRESS_CACHE_SIZE  5
 
   #define EMBER_ADDRESS_TABLE_SIZE \

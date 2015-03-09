@@ -86,6 +86,7 @@
         "Normal", "Radio Only", "Bridge only", "Radio and Bridge",
  };
 #endif//PHY_BRIDGE
+#include <stdio.h>
 
 // *******************************************************************
 // Define the concentrator type for use when sending "many-to-one"
@@ -217,6 +218,7 @@ int main(void)
   // print the reason for the reset
   emberSerialGuaranteedPrintf(APP_SERIAL, "reset: %p\r\n", 
                               (PGM_P)halGetResetString());
+  //if(halGetResetInfo() !)
 #ifdef  PHY_BRIDGE
   #ifdef CORTEXM3
     if (halResetWasCrash()) {
@@ -523,7 +525,8 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     break;
     
   case MSG_DATA:
-    // we just heard from this remote node so clear ticks since last heard
+    //configPinOut(PA, 6, 0x00); //indicate
+    // we just heard from this remote node so clear ticks since last heard    
     addressTableIndex = findAddressTableLocation(eui);
     if (addressTableIndex != EMBER_NULL_ADDRESS_TABLE_INDEX)
       ticksSinceLastHeard[addressTableIndex] = 0;
@@ -617,6 +620,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
 #endif
     }
     */
+    //configPinOut(PA, 6, 0x01); //indicate
     break;
 
   case MSG_MULTICAST_HELLO:
@@ -751,6 +755,8 @@ void emberJoinableNetworkFoundHandler(EmberZigbeeNetwork *networkFound,
 // and periodically flash LEDs
 static void applicationTick(void) {
   static int16u lastBlinkTime = 0;
+  static int16u lastLedBlinkTime = 0;
+  
   int16u time;
   int8u i;
   EmberStatus status = 0;
@@ -909,6 +915,15 @@ static void applicationTick(void) {
                         emberLeaveNetwork());
     }
   }
+  
+//  static boolean sinLedState = 0;
+//  if ( (int16u)(time - lastLedBlinkTime) > 1000 ) {
+//    lastLedBlinkTime = time;
+//    configPinOut(PA, 6, sinLedState); 
+//    sinLedState = sinLedState ^ 0x01;      
+//  }
+  
+  
 }
 
 // add the multicast group

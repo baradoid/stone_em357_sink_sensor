@@ -75,6 +75,7 @@
 // *******************************************************************
 
 #include "app/sensor/common.h"
+//#include "app/sensor/tokens-sens.h"
 #include "string.h"
 #include <stdio.h>
 #ifdef  PHY_BRIDGE
@@ -179,7 +180,7 @@ boolean waitingForDataAck = FALSE; // для совместимости общих модулей
 void printHelp(void);
 void addMulticastGroup(void);
 void processSerialInput(void);
-static void applicationTick(void);
+static void joinedAppTick(void);
 void handleSinkAdvertise(int8u* data);
 void sensorInit(void);
 void checkButtonEvents(void);
@@ -197,6 +198,10 @@ void initPins();
 void unjoinedAppTick();
 void appTick();
 
+static void getTokensData();
+static void saveData();
+
+static void resetPulseCntValues();
 
 // *******************************************************************
 // Begin main application loop
@@ -306,6 +311,8 @@ void main(void)
   initCounters();
   configRfFrontEnd();
 
+  getTokensData();
+  
   // event loop
   while(TRUE) {
 
@@ -326,7 +333,7 @@ void main(void)
 
     // only blink LEDs if app is joined
     if (emberNetworkState() == EMBER_JOINED_NETWORK)
-      applicationTick(); // check timeouts, buttons, flash LEDs
+      joinedAppTick(); // check timeouts, buttons, flash LEDs
     else{
       unjoinedAppTick();
       checkButtonEvents();
@@ -720,6 +727,8 @@ void emberUnusedPanIdFoundHandler(EmberPanId panId, int8u channel)
 static void appTick()
 {
   static int16u lastBlinkTime11 = 0;
+  static int16u lastPrintPollTime = 0;
+  
   int16u time = halCommonGetInt16uMillisecondTick();
  
   processCountes();
@@ -731,12 +740,68 @@ static void appTick()
     configPinOut(PC, 0, counterAttr[1].bPulseLasteState[0]);
     configPinOut(PB, 7, counterAttr[2].bPulseLasteState[0]);
     configPinOut(PB, 6, counterAttr[3].bPulseLasteState[0]); 
+    
+    boolean bLight = counterAttr[0].bPulseLasteState[0] |
+                     counterAttr[1].bPulseLasteState[0] |
+                     counterAttr[2].bPulseLasteState[0] |
+                     counterAttr[3].bPulseLasteState[0] ;
+    
+    configPinOut(PA, 7, bLight);
 
 
     togglePin(PA, 6);
     togglePin(PC, 0);
     togglePin(PB, 7);
     togglePin(PB, 6); 
+  }
+
+//  if((int16u)(time - acPollTime) > 500){
+//    acPollTime = time; 
+//    //emberSerialPrintf(APP_SERIAL, "PAIN %x \r\n", GPIO_PAIN);
+//    boolean acState = isAcPower();
+//    if(acState != lastAcState){
+//      lastAcState = acState;
+//      if(acState == TRUE)
+//        emberSerialPrintf(APP_SERIAL, "AC power ON \r\n");
+//      else
+//        emberSerialPrintf(APP_SERIAL, "AC power OFF \r\n");     
+//    }
+//  }
+  
+  static int16u ledState = 0;  
+  
+  if( (int16u)(time - lastPrintPollTime) > 1000 ){        
+    lastPrintPollTime = time;
+    
+    if(ledState == 0){
+      //configPinOut(PA, 7, 0);
+      ledState = 1;
+    }
+    else{
+      //configPinOut(PA, 7, 1);
+      ledState = 0;      
+    }
+    
+    emberSerialPrintf(APP_SERIAL, "cnts: %d %d %d %d  \r\n", counterAttr[0].counterValue,
+                                                             counterAttr[1].counterValue,
+                                                             counterAttr[2].counterValue,
+                                                             counterAttr[3].counterValue);
+  }
+    
+
+  static boolean bDataSaved = FALSE;
+  int16u vdd = halMeasureVdd(ADC_CONVERSION_TIME_US_256);
+  if(vdd < 2300){
+    emberSerialPrintf(APP_SERIAL, "vdd %d ", vdd);
+    if(bDataSaved == FALSE){
+      emberSerialPrintf(APP_SERIAL, "saving data ");      
+      saveData();
+      bDataSaved = TRUE;
+    }
+    emberSerialPrintf(APP_SERIAL, "\r\n", vdd);      
+  }
+  else{
+    bDataSaved = FALSE;
   }
 }
 
@@ -755,62 +820,16 @@ static void unjoinedAppTick()
 }
 // applicationTick - called to check application timeouts, button events,
 // and periodically flash LEDs
-static void applicationTick(void) {
-  static int16u lastBlinkTime = 0;
-  static int16u lastPrintPollTime = 0;
-  
-  static int16u ledState = 0;
-  
-  static int16u acPollTime = 0;
-  static boolean lastAcState = FALSE;
-  
+static void joinedAppTick(void) {
+
+  static int16u lastBlinkTime = 0; 
   int16u time;
 
   #ifdef USE_BOOTLOADER_LIB
     bootloadUtilTick();
   #endif
   time = halCommonGetInt16uMillisecondTick();
-  
 
-  if((int16u)(time - acPollTime) > 500){
-    acPollTime = time; 
-    //emberSerialPrintf(APP_SERIAL, "PAIN %x \r\n", GPIO_PAIN);
-    boolean acState = isAcPower();
-    if(acState != lastAcState){
-      lastAcState = acState;
-      if(acState == TRUE)
-        emberSerialPrintf(APP_SERIAL, "AC power ON \r\n");
-      else
-        emberSerialPrintf(APP_SERIAL, "AC power OFF \r\n");     
-    }
-  }
-    
-
-  if( (int16u)(time - lastPrintPollTime) > 1000 ){        
-    lastPrintPollTime = time;
-    
-    if(ledState == 0){
-      configPinOut(PA, 7, 0);
-      ledState = 1;
-    }
-    else{
-      configPinOut(PA, 7, 1);
-      ledState = 0;      
-    }
-    
-//    emberSerialPrintf(APP_SERIAL, "GPIO_PAIN %x %x %x, %d %d %d %d  \r\n", 
-//                                                                  GPIO_PAIN, GPIO_PBIN, GPIO_PCIN,
-//                                                                  counterAttr[0].counterValue,
-//                                                                  counterAttr[1].counterValue,
-//                                                                  counterAttr[2].counterValue,
-//                                                                  counterAttr[3].counterValue);
-  }
-    
-
-  int16u vdd = halMeasureVdd(ADC_CONVERSION_TIME_US_256);
-  if(vdd < 2500){
-    emberSerialPrintf(APP_SERIAL, "vdd %d \r\n", vdd);
-  }
   // Application timers are based on quarter second intervals, where each 
   // quarter second is equal to TICKS_PER_QUARTER_SECOND millisecond ticks. 
   // Only service the timers (decrement and check if they are 0) after each
@@ -1165,6 +1184,7 @@ void processSerialInput(void) {
     case 'r':
       //dataMode = DATA_MODE_RANDOM;
       //emberSerialPrintf(APP_SERIAL, "Send random data\r\n");
+      resetPulseCntValues();
       break;
 
       // send Temp data
@@ -1466,6 +1486,28 @@ int16u toBCD(int16u number)
   return number;
 }
 
+static void getTokensData()
+{
+  emberSerialPrintf(APP_SERIAL, "saved pulse data: ");
+  for(int i=0; i<4; i++){
+    halCommonGetIndexedToken(&(counterAttr[i].counterValue), TOKEN_IMPULSE_CNTS, i);
+    emberSerialPrintf(APP_SERIAL, "%d ",  counterAttr[i].counterValue);
+  }
+  emberSerialPrintf(APP_SERIAL, "\r\n");
+  
+}
+static void saveData()
+{
+  for(int i=0; i<4; i++){
+    halCommonSetIndexedToken(TOKEN_IMPULSE_CNTS, i, &(counterAttr[i].counterValue));
+  }
+}
+
+static void resetPulseCntValues()
+{
+  for(int i=0; i<4; i++)
+    counterAttr[i].counterValue = 0;
+}
 
 // End utility functions
 // *******************************************************************
