@@ -469,7 +469,8 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
   emberCopyFromLinkedBuffers(message, 0, (int8u*) &eui, 8);
   
  
-  
+  int8s rssi;
+  emberGetLastHopRssi(&rssi);
   //MEMCOPY(&eui, &(payLoadData.eui[0]), EUI64_SIZE);
   
   // ********************************************
@@ -496,31 +497,34 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
 
   case MSG_SENSOR_SELECT_SINK:
     if (type == EMBER_INCOMING_UNICAST) {
+      printTimeStamp();
       emberSerialPrintf(APP_SERIAL, "RX [sensor select sink] from: ");
       printEUI64(APP_SERIAL, &eui);
-      emberSerialPrintf(APP_SERIAL, "; processing message\r\n");
+      emberSerialPrintf(APP_SERIAL, "; rssi %d; processing message\r\n", rssi);
       handleSensorSelectSink(eui, sender);
     }
     // if type is EMBER_INCOMING_DATAGRAM_REPLY then this is an ack
     // for MSG_SENSOR_SELECT_SINK, which is really a MSG_SINK_READY
     else if (type == EMBER_INCOMING_UNICAST_REPLY) {
+      printTimeStamp();
       emberSerialPrintf(APP_SERIAL, "RX [sink ready] from: ");
       printEUI64(APP_SERIAL, &eui);
-      emberSerialPrintf(APP_SERIAL, "; this is an error]\r\n");
+      emberSerialPrintf(APP_SERIAL, "; rssi %d; this is an error]\r\n", rssi);
     }
     break;
 
   case MSG_SINK_READY:
+    printTimeStamp();
     emberSerialPrintf(APP_SERIAL, "RX [sink ready] from: ");
     printEUI64(APP_SERIAL, &eui);
-    emberSerialPrintf(APP_SERIAL, "; this is an error]\r\n");
+    emberSerialPrintf(APP_SERIAL, "; rssi %d; this is an error]\r\n", rssi);
     break;
 
   case MSG_SINK_QUERY:
     printTimeStamp();
     emberSerialPrintf(APP_SERIAL, "RX [sink query] from: ");
     printEUI64(APP_SERIAL, &eui);
-    emberSerialPrintf(APP_SERIAL, "; processing message\r\n");
+    emberSerialPrintf(APP_SERIAL, "; rssi %d; processing message\r\n", rssi);
     handleSinkQuery(sender);
     break;
     
@@ -550,6 +554,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     // add an address table entry
     status = emberSetAddressTableRemoteEui64(addressTableIndex, eui);
     if (status != EMBER_SUCCESS) {
+      printTimeStamp();
       emberSerialPrintf(APP_SERIAL,
                         "TX ERROR [sink ready], set remote EUI64 failure,"
                         " status 0x%x\r\n",
@@ -578,8 +583,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     TPayLoadData payLoadData; 
     emberCopyFromLinkedBuffers(message, EUI64_SIZE, (int8u*) &payLoadData, sizeof(TPayLoadData));
 
-    int8s rssi;
-    emberGetLastHopRssi(&rssi);
+
     
     /*emberSerialPrintf(APP_SERIAL, " __ %d pwr: %s RSSI:%d, %4x %4x %4x %4x \r\n", 
                                                                     payLoadData.msgNum,
@@ -1105,9 +1109,11 @@ void handleSensorSelectSink(EmberEUI64 eui,
   emberReleaseMessageBuffer(buffer);
 
   // status message
+  //printTimeStamp();
   emberSerialPrintf(APP_SERIAL,
                     "TX [sink ready], status:0x%x\r\n",
                     status);
+  emberSerialWaitSend(APP_SERIAL);
 }
 
 // look through the address table for a free location.
