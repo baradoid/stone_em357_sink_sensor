@@ -148,6 +148,7 @@ int8u PGM tune[] = {
 };
 
 int16u curBootloadAddrIndex = 0;
+boolean needToSendSinkReady = FALSE;
 
 // a timer to remind us to send the network key update after we have sent
 // out the network key. We must wait a period equal to the broadcast 
@@ -173,6 +174,7 @@ void handleSensorSelectSink(EmberEUI64 eui,
 int8u findFreeAddressTableLocation(void);
 int8u findAddressTableLocation(EmberEUI64 eui64);
 void sinkInit(void);
+void sendSinkReady();
 
 
 // these are defines used for the variable networkFormMethod. This variable
@@ -390,7 +392,8 @@ void emberMessageSentHandler(EmberOutgoingMessageType type,
                       EmberMessageBuffer message,
                       EmberStatus status)
 {
-
+  
+  //emberSerialPrintf(APP_SERIAL," emberMessageSentHandler %x status %x\r\n", indexOrDestination, status);
 }
 
 
@@ -500,7 +503,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
       printTimeStamp();
       emberSerialPrintf(APP_SERIAL, "RX [sensor select sink] from: ");
       printEUI64(APP_SERIAL, &eui);
-      emberSerialPrintf(APP_SERIAL, "; rssi %d; processing message\r\n", rssi);
+      emberSerialPrintf(APP_SERIAL, " rssi %d \r\n", rssi);
       handleSensorSelectSink(eui, sender);
     }
     // if type is EMBER_INCOMING_DATAGRAM_REPLY then this is an ack
@@ -509,7 +512,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
       printTimeStamp();
       emberSerialPrintf(APP_SERIAL, "RX [sink ready] from: ");
       printEUI64(APP_SERIAL, &eui);
-      emberSerialPrintf(APP_SERIAL, "; rssi %d; this is an error]\r\n", rssi);
+      emberSerialPrintf(APP_SERIAL, "; rssi %d; this is an error\r\n", rssi);
     }
     break;
 
@@ -825,7 +828,7 @@ static void applicationTick(void) {
       // at 0.5 seconds to go, send the "many-to-one" route request
       if (timeBeforeSinkAdvertise == 2) {
         status = emberSendManyToOneRouteRequest(concentratorType,
-                                                10);        // radius
+                                                0);        // radius
 //        printTimeStamp();
 //        emberSerialPrintf(APP_SERIAL,
 //                          "EVENT: sink send many-to-one route request,"
@@ -854,6 +857,10 @@ static void applicationTick(void) {
         }
       }
 
+      if(needToSendSinkReady == TRUE){
+        sendSinkReady();
+        needToSendSinkReady = FALSE;
+      }
     }
     // ***************************
     // the next set of events are done even if the device is not part of
@@ -1102,8 +1109,24 @@ void handleSensorSelectSink(EmberEUI64 eui,
     return;
   }
 
-  // send the message
+  // send the message  
   status = emberSendReply(MSG_SINK_READY, buffer);
+  
+    //EmberApsFrame apsFrame;
+      // all of the defined values below are from app/sensor-host/common.h
+    // with the exception of the options from stack/include/ember.h
+    //apsFrame.profileId = PROFILE_ID;          // profile unique to this app
+    //apsFrame.clusterId = MSG_SINK_READY;
+    //apsFrame.sourceEndpoint = ENDPOINT;       // sensor endpoint
+    //apsFrame.destinationEndpoint = ENDPOINT;  // sensor endpoint
+    //apsFrame.options = (EMBER_APS_OPTION_RETRY | EMBER_APS_OPTION_ENABLE_ROUTE_DISCOVERY);
+    
+    // send the message
+    //status = emberSendUnicast(EMBER_OUTGOING_VIA_ADDRESS_TABLE,
+    //                          addressTableIndex, 
+    //                          &apsFrame,
+    //                          buffer);
+    
 
   // done with the packet buffer
   emberReleaseMessageBuffer(buffer);
@@ -1112,8 +1135,9 @@ void handleSensorSelectSink(EmberEUI64 eui,
   //printTimeStamp();
   emberSerialPrintf(APP_SERIAL,
                     "TX [sink ready], status:0x%x\r\n",
-                    status);
+                  status);
   emberSerialWaitSend(APP_SERIAL);
+  
 }
 
 // look through the address table for a free location.
@@ -1394,7 +1418,13 @@ void processSerialInput(void) {
       printEUI64(APP_SERIAL, &eui);
       emberSerialPrintf(APP_SERIAL, "\r\n");  
       break;
-      
+    case 'S':
+      emberGetAddressTableRemoteEui64(curBootloadAddrIndex, eui);
+      emberSerialPrintf(APP_SERIAL, "send sink ready to ");  
+      printEUI64(APP_SERIAL, &eui);
+      emberSerialPrintf(APP_SERIAL, "\r\n");  
+      needToSendSinkReady = TRUE;
+      break;
       // This command initiates a passthru bootloading of the first
       // device in the child table
     case 'C':
@@ -1538,6 +1568,66 @@ void printHelp(void)
 #endif//PHY_BRIDGE
 }
 
+// *********************************************************************
+// The follwing section has to do with sending APS messages to sleeping
+// children. This code is needed by devices that act as parents
+
+// Called when the parent receives a MSG_SINK_QUERY. The parent will
+// respond with a MSG_SINK_ADVERTISE
+void sendSinkReady()
+{
+  EmberMessageBuffer buffer;
+  EmberApsFrame apsFrame;
+
+    EmberStatus status;
+
+    // the data - sink long address (EUI), sink short address
+    MEMCOPY(&(globalBuffer[0]), emberGetEui64(), EUI64_SIZE);
+
+    // copy the data into a packet buffer
+    buffer = emberFillLinkedBuffers((int8u*)globalBuffer, EUI64_SIZE);
+
+    // check to make sure a buffer is available
+    if (buffer == EMBER_NULL_MESSAGE_BUFFER) {
+      emberSerialPrintf(APP_SERIAL,
+                        "TX ERROR [sink advertise], OUT OF BUFFERS\r\n");
+      return;
+    }
+
+    // all of the defined values below are from app/sensor-host/common.h
+    // with the exception of the options from stack/include/ember.h
+    apsFrame.profileId = PROFILE_ID;          // profile unique to this app
+    apsFrame.clusterId = MSG_SINK_READY;
+    apsFrame.sourceEndpoint = ENDPOINT;       // sensor endpoint
+    apsFrame.destinationEndpoint = ENDPOINT;  // sensor endpoint
+    apsFrame.options = (EMBER_APS_OPTION_RETRY | EMBER_APS_OPTION_ENABLE_ROUTE_DISCOVERY);
+    
+    // send the message
+    status = emberSendUnicast(EMBER_OUTGOING_VIA_ADDRESS_TABLE,
+                              curBootloadAddrIndex, 
+                              &apsFrame,
+                              buffer);
+
+    // done with the packet buffer
+    emberReleaseMessageBuffer(buffer);
+
+    if (status != EMBER_SUCCESS) {
+        emberSerialPrintf(APP_SERIAL, "ERROR: send unicast status %x \r\n", status);
+//      emberSerialPrintf(APP_SERIAL, 
+//                        "ERROR: send unicast, child %2x, status %x\r\n",
+//                        childId, status);
+      emberSerialWaitSend(APP_SERIAL);
+    }
+}
+
+/*void emberIncomingRouteRecordHandler(EmberNodeId source,
+                                     EmberEUI64 sourceEui,
+                                     int8u relayCount,
+                                     EmberMessageBuffer header,
+                                     int8u relayListIndex)
+{
+  emberSerialPrintf(APP_SERIAL, "emberIncomingRouteRecordHandler %x \r\n", source);
+}*/
+
 // End utility functions
 // *******************************************************************
-
