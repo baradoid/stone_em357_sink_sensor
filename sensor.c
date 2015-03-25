@@ -770,7 +770,8 @@ static void appTick()
   
   static int16u ledState = 0;  
   
-  if( (int16u)(time - lastPrintPollTime) > 1000 ){        
+  
+  if( (int16u)(time - lastPrintPollTime) > 250 ){        
     lastPrintPollTime = time;
     
     if(ledState == 0){
@@ -782,11 +783,22 @@ static void appTick()
       ledState = 0;      
     }
     
-    emberSerialPrintf(APP_SERIAL, "cnts: %d %d %d %d  \r\n", counterAttr[0].counterValue,
+    /*emberSerialPrintf(APP_SERIAL, "cnts: %d %d %d %d  \r\n", counterAttr[0].counterValue,
                                                              counterAttr[1].counterValue,
                                                              counterAttr[2].counterValue,
-                                                             counterAttr[3].counterValue);
+                                                             counterAttr[3].counterValue);*/
+
+
   }
+  static polarity = true;
+  static int32u lastPinState = 0;
+  int32u pinState = GPIO_PAIN&(PA1_MASK|PA7_MASK);
+  if(pinState != lastPinState){
+    emberSerialPrintf(APP_SERIAL, "pin: %x  \r\n", pinState);
+    lastPinState = pinState;
+  }
+  
+  
     
 
   static boolean bDataSaved = FALSE;

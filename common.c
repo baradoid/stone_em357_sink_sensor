@@ -1000,7 +1000,7 @@ void initPins()
   configPinInputPullDown(GPIO_PACFGL_REG, PA, 0);
   
   //LED - pin5 - PA7
-  configPinMode(GPIO_PACFGH_REG, PA, 7, GPIO_MODE_OUT_PUSH_PULL);
+  //configPinMode(GPIO_PACFGH_REG, PA, 7, GPIO_MODE_OUT_PUSH_PULL);
   
   configPinMode(GPIO_PACFGH_REG, PA, 6, GPIO_MODE_OUT_PUSH_PULL);
   configPinOut(PA, 6, 1);
@@ -1020,6 +1020,12 @@ void initPins()
   //power down,RX bypass - pin25 - PB0
   configPinMode(GPIO_PBCFGL_REG, PB, 0, GPIO_MODE_OUT_PUSH_PULL);
   configPinOut(PB, 0, 1);
+  
+  GPIO_DBGCFG &= (~GPIO_EXTREGEN);         //PA7 disable ext reg control func
+  configPinMode(GPIO_PACFGL_REG, PA, 1, GPIO_MODE_INPUT);
+  configPinMode(GPIO_PACFGH_REG, PA, 7, GPIO_MODE_INPUT);
+  configPinInputPullDown(GPIO_PACFGL_REG, PA, 1);
+  configPinInputPullDown(GPIO_PACFGH_REG, PA, 7);
 }
 
 void configRfFrontEnd()
