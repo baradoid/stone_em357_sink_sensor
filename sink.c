@@ -150,6 +150,7 @@ int8u PGM tune[] = {
 int16u curBootloadAddrIndex = 0;
 boolean needToSendSinkReady = FALSE;
 
+boolean bIsDebugTraceTimeEnable = FALSE;
 // a timer to remind us to send the network key update after we have sent
 // out the network key. We must wait a period equal to the broadcast 
 // timeout so that all routers have a chance to receive the broadcast 
@@ -601,7 +602,8 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     char vccStr[5];
     sprintf(vccStr+1, "%2x", payLoadData.vcc);
     vccStr[0] = payLoadData.isAcPower?'A':'B';
-    printTimeStamp();
+    if(bIsDebugTraceTimeEnable == TRUE)
+      printTimeStamp();
     emberSerialPrintf(APP_SERIAL, "MV00,");
     printEUI64(APP_SERIAL, &eui);
     emberSerialPrintf(APP_SERIAL, ",%2x,%d,136,%s,%4x,%4x,%4x,%4x,FB\r\n", 
@@ -1358,8 +1360,10 @@ void processSerialInput(void) {
 
       // identify tune
     case 't':
-      halPlayTune_P(tune, 0);
-      halPlayTune_P(tune, 0);
+      bIsDebugTraceTimeEnable = !bIsDebugTraceTimeEnable;
+      emberSerialPrintf(APP_SERIAL, "bIsDebugTraceTimeEnable %s \r\n", bIsDebugTraceTimeEnable? "TRUE" : "FALSE");
+      //halPlayTune_P(tune, 0);
+      //halPlayTune_P(tune, 0);
       break;
 
       // bootloader
@@ -1515,7 +1519,6 @@ void processSerialInput(void) {
     case '\n':
     case '\r':
       break;
-
 
     default:
       emberSerialPrintf(APP_SERIAL, "unknown cmd\r\n");
