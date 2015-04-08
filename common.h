@@ -108,8 +108,8 @@
 //#define SEND_DATA_RATE  20 // rate sent in quarter-seconds
 //#define SEND_DATA_RATE  120 // rate sent in quarter-seconds
 //#define SEND_DATA_RATE  240 // 1 min - rate sent in quarter-seconds
-#define SEND_DATA_RATE  1200 // 5 min - rate sent in quarter-seconds
-//#define SEND_DATA_RATE  2400 // 10 min - rate sent in quarter-seconds
+//#define SEND_DATA_RATE  1200 // 5 min - rate sent in quarter-seconds
+#define SEND_DATA_RATE  2400 // 10 min - rate sent in quarter-seconds
 //#define SEND_DATA_RATE  3600 // 15 min - rate sent in quarter-seconds
 
 // num of pkts to miss before deciding that other node is gone
