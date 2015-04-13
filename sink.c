@@ -641,7 +641,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     printTimeStamp();
     emberSerialPrintf(APP_SERIAL, "Hello reply recvd from ");
     printEUI64(APP_SERIAL, &eui);
-    emberSerialPrintf(APP_SERIAL, " \r\n");
+    emberSerialPrintf(APP_SERIAL, " rssi %d \r\n", rssi);
     break;
       
   case MSG_MULTICAST_HELLO:
