@@ -178,6 +178,7 @@ void sinkInit(void);
 void sendSinkReady();
 
 
+
 // these are defines used for the variable networkFormMethod. This variable
 // affects the serial output when a network is formed. 
 #define SINK_FORM_NEW_NETWORK 1
@@ -632,6 +633,17 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     //configPinOut(PA, 6, 0x01); //indicate
     break;
 
+  case MSG_HELLO:
+    sendHelloReply(eui);
+    break;
+
+  case MSG_HELLO_REPLY:
+    printTimeStamp();
+    emberSerialPrintf(APP_SERIAL, "Hello reply recvd from ");
+    printEUI64(APP_SERIAL, &eui);
+    emberSerialPrintf(APP_SERIAL, " \r\n");
+    break;
+      
   case MSG_MULTICAST_HELLO:
     // ignore own multicast hello's
     if (!(emberIsLocalEui64(eui))) {
@@ -992,6 +1004,58 @@ void sendMulticastHello(void) {
   emberSerialPrintf(APP_SERIAL,
        "TX [multicast hello], status 0x%x\r\n", status);
 }
+
+// sendUnicastHello
+void sendUnicastCommand(int16u cmd) {
+
+  int8u index;
+  EmberEUI64 eui;
+  if (emberGetAddressTableRemoteNodeId(curBootloadAddrIndex) 
+    == EMBER_TABLE_ENTRY_UNUSED_NODE_ID) {
+    // error
+    emberSerialPrintf(APP_SERIAL,
+    "ERROR: no device in address table at"
+    " location %d\r\n", curBootloadAddrIndex);
+    return;
+  }
+  emberGetAddressTableRemoteEui64(curBootloadAddrIndex, eui);
+        
+  EmberStatus status;
+  EmberApsFrame apsFrame;
+  EmberMessageBuffer buffer = 0;
+
+  // the data - my long address
+  MEMCOPY(&(globalBuffer[0]), emberGetEui64(), EUI64_SIZE);
+
+  // copy the data into a packet buffer
+  buffer = emberFillLinkedBuffers((int8u*) globalBuffer, EUI64_SIZE);
+
+  // check to make sure a buffer is available
+  if (buffer == EMBER_NULL_MESSAGE_BUFFER) {
+    emberSerialPrintf(APP_SERIAL,
+        "TX ERROR [unicast hello], OUT OF BUFFERS\r\n");
+    return;
+  }
+
+  apsFrame.profileId = PROFILE_ID;          // profile unique to this app
+  apsFrame.clusterId = cmd;
+  apsFrame.sourceEndpoint = ENDPOINT;       // sensor endpoint
+  apsFrame.destinationEndpoint = ENDPOINT;  // sensor endpoint
+  apsFrame.options = (EMBER_APS_OPTION_RETRY | EMBER_APS_OPTION_ENABLE_ROUTE_DISCOVERY);
+    
+    // send the message
+  status = emberSendUnicast(EMBER_OUTGOING_VIA_ADDRESS_TABLE,
+                              curBootloadAddrIndex, 
+                              &apsFrame,
+                              buffer);
+    
+  // done with the packet buffer
+  emberReleaseMessageBuffer(buffer);
+
+  emberSerialPrintf(APP_SERIAL,
+       "TX [unicast hello], status 0x%x\r\n", status);
+}
+
 
 // sinkAdvertise
 void sinkAdvertise(void) {
@@ -1514,6 +1578,13 @@ void processSerialInput(void) {
       emberSerialPrintf(APP_SERIAL,
            "keyswitch: sending switch network key command, status %x\r\n",
                         emberBroadcastNetworkKeySwitch());
+      break;
+
+    case 'h':
+      sendUnicastCommand(MSG_HELLO);
+      break;
+    case 'z':
+      sendUnicastCommand(MSG_CLEAR_COUNTERS);
       break;
 
     case '\n':

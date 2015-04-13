@@ -470,6 +470,7 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
 {
   // Called with an incoming message
   EmberEUI64 eui;
+  EmberStatus status;
   int8u length = emberMessageBufferLength(message);
 
   // make sure this is a valid packet of sensor/sink app
@@ -500,9 +501,10 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
 
     emberSerialPrintf(APP_SERIAL, "RX [sink advertise] from: ");
     printEUI64(APP_SERIAL, &eui);
+    
     if ((mainSinkFound == FALSE) && (waitingForSinkReadyMessage == FALSE) &&
         (waitingToRespond == FALSE)) {
-      waitingToRespond = TRUE;
+      /*waitingToRespond = TRUE;
       emberSerialPrintf(APP_SERIAL, "; processing message\r\n");
       emberCopyFromLinkedBuffers(message, 0, dataBuffer, EUI64_SIZE + 2);
 
@@ -511,7 +513,36 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
       timeToWaitForSinkReadyMessage = TIME_TO_WAIT_FOR_SINK_READY;
       emberSerialPrintf(APP_SERIAL,
                         "EVENT waiting %x ticks before reponding\r\n",
-                        respondTimer);
+                        respondTimer);*/
+      
+       emberSerialPrintf(APP_SERIAL, " \r\n");
+      // save the EUI64 and short address of the sink so that is a mobile
+      // node becomes a child of this node it can immediately inform the
+      // mobile node who the parent sink is.
+      MEMCOPY(sinkEUI, &(eui[0]), EUI64_SIZE);
+      sinkShortAddress = emberFetchLowHighInt16u(&(eui[EUI64_SIZE]));
+
+      status = emberSetAddressTableRemoteEui64(SINK_ADDRESS_TABLE_INDEX, sinkEUI);
+      if (status != EMBER_SUCCESS) {
+        emberSerialPrintf(APP_SERIAL,
+               "TX ERROR [sensor select sink], set remote EUI64 failure,"
+               " status 0x%x\r\n",
+               status);
+        return;
+      }
+      emberSetAddressTableRemoteNodeId(SINK_ADDRESS_TABLE_INDEX, sinkShortAddress);
+
+      emberSerialPrintf(APP_SERIAL,
+                        "EVENT: sensor set address table entry %x to sink [",
+                        SINK_ADDRESS_TABLE_INDEX);
+      printEUI64(APP_SERIAL, &sinkEUI);
+      emberSerialPrintf(APP_SERIAL, "] ");
+  
+  
+      emberSerialPrintf(APP_SERIAL, "; will start sending data\r\n");
+      waitingForSinkReadyMessage = FALSE;
+      mainSinkFound = TRUE;
+      sendDataCountdown = SEND_DATA_RATE;
     } else {
       emberSerialPrintf(APP_SERIAL, "; ignoring\r\n");
     }
@@ -526,10 +557,11 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
   case MSG_SINK_READY:
     emberSerialPrintf(APP_SERIAL, "RX [sink ready] from: ");
     printEUI64(APP_SERIAL, &eui);
-    emberSerialPrintf(APP_SERIAL, "; will start sending data\r\n");
+    emberSerialPrintf(APP_SERIAL, "; ignoring \r\n");
+    /*emberSerialPrintf(APP_SERIAL, "; will start sending data\r\n");
     waitingForSinkReadyMessage = FALSE;
     mainSinkFound = TRUE;
-    sendDataCountdown = SEND_DATA_RATE;
+    sendDataCountdown = SEND_DATA_RATE;*/
     break;
 
   case MSG_SINK_QUERY:
@@ -562,6 +594,15 @@ void emberIncomingMessageHandler(EmberIncomingMessageType type,
     appAddJitForAllChildren(MSG_MULTICAST_HELLO, eui, EUI64_SIZE);
 
     break;
+
+  case MSG_HELLO:
+    sendHelloReply(eui);
+    break;
+
+  case MSG_CLEAR_COUNTERS:
+    resetPulseCntValues();
+    break;
+
 
   default:
     emberSerialPrintf(APP_SERIAL, "RX [unknown (%2x)] from: ",
@@ -782,10 +823,10 @@ static void appTick()
       ledState = 0;      
     }
     
-    emberSerialPrintf(APP_SERIAL, "cnts: %d %d %d %d  \r\n", counterAttr[0].counterValue,
+    /*emberSerialPrintf(APP_SERIAL, "cnts: %d %d %d %d  \r\n", counterAttr[0].counterValue,
                                                              counterAttr[1].counterValue,
                                                              counterAttr[2].counterValue,
-                                                             counterAttr[3].counterValue);
+                                                             counterAttr[3].counterValue);*/
   }
     
 
@@ -1505,6 +1546,7 @@ static void saveData()
 
 static void resetPulseCntValues()
 {
+  emberSerialPrintf(APP_SERIAL, "counters cleared \r\n");
   for(int i=0; i<4; i++)
     counterAttr[i].counterValue = 0;
 }

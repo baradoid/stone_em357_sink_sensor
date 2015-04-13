@@ -72,6 +72,12 @@
 // multicast hello
 #define MSG_MULTICAST_HELLO 100
 
+#define MSG_HELLO 101
+#define MSG_HELLO_REPLY 102
+
+#define MSG_CLEAR_COUNTERS 103
+#define MSG_CLEAR_COUNTERS_OK 104
+
 //
 // **********************************
 
@@ -311,3 +317,5 @@ void printTimeStamp();
 void printNetInfo(EmberNetworkParameters * networkParameters);
 void pintNetState();
 boolean isAcPower();
+
+void sendHelloReply(EmberEUI64 eui);

@@ -1036,7 +1036,7 @@ void configRfFrontEnd()
   else
     txPower = 8;
   
-  //txPower = -40; //DEBUG
+  //txPower = -30; //DEBUG
       
   emberSerialPrintf(APP_SERIAL,  "tx power %d dBm. try to set tx power to %d dBm ... ", 
                                                                               emberGetRadioPower(),
@@ -1281,7 +1281,15 @@ void sendDataCommon(int8u type) {
   
   static int32u sendDataCnt = 0;
   payLoadData.msgNum = sendDataCnt;
-  emberSerialPrintf(APP_SERIAL, "send data %d pwr:%s\r\n", sendDataCnt++, payLoadData.isAcPower?"AC":"BAT");
+  emberSerialPrintf(APP_SERIAL, "send data %d, cnts: %d %d %d %d \r\n", sendDataCnt++, counterAttr[0].counterValue,
+                                                             counterAttr[1].counterValue,
+                                                             counterAttr[2].counterValue,
+                                                             counterAttr[3].counterValue);
+  
+      /*emberSerialPrintf(APP_SERIAL, "cnts: %d %d %d %d  \r\n", counterAttr[0].counterValue,
+                                                             counterAttr[1].counterValue,
+                                                             counterAttr[2].counterValue,
+                                                             counterAttr[3].counterValue);*/
   
   MEMCOPY(&(globalBuffer[EUI64_SIZE]), &payLoadData, sizeof(TPayLoadData));
   //MEMCOPY(&(globalBuffer[0]), &payLoadData, sizeof(TPayLoadData));
@@ -1474,5 +1482,39 @@ void pintNetState()
     default:
       emberSerialPrintf(APP_SERIAL, "unknown %x\r\n", emberNetworkState());
   }
+}
+
+
+void sendHelloReply(EmberEUI64 eui) {
+
+  emberSerialPrintf(APP_SERIAL, "RX [MSG_HELLO] from: ");
+  printEUI64(APP_SERIAL, (EmberEUI64 *)eui);
+  //emberSerialPrintf(APP_SERIAL, "\r\n");
+    
+  int8u addressTableIndex;
+  EmberMessageBuffer buffer;
+  EmberStatus status = 0;
+
+  // copy the data into a packet buffer
+  buffer = emberFillLinkedBuffers((int8u*)globalBuffer, EUI64_SIZE);
+
+  // check to make sure a buffer is available
+  if (buffer == EMBER_NULL_MESSAGE_BUFFER) {
+    emberSerialPrintf(APP_SERIAL,
+                      "TX ERROR [sendHelloReply], OUT OF BUFFERS\r\n");
+    return;
+  }
+
+  // send the message  
+  status = emberSendReply(MSG_HELLO_REPLY, buffer);
+
+  // done with the packet buffer
+  emberReleaseMessageBuffer(buffer);
+
+  // status message
+  //printTimeStamp();
+  emberSerialPrintf(APP_SERIAL, "  TX [hello reply], status:0x%x\r\n", status);
+  emberSerialWaitSend(APP_SERIAL);
+  
 }
 
