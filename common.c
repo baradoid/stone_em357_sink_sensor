@@ -325,37 +325,40 @@ void printAddressTable(int8u tableSize) {
       indexLow = (i % 10) + 48;
       indexHigh = ((i - (i % 10))/10) + 48;
 
-      emberSerialPrintf(APP_SERIAL, " %c%c: ",
-                        indexHigh, indexLow);
 
       remoteNodeId = emberGetAddressTableRemoteNodeId(i);
-      if (remoteNodeId == EMBER_TABLE_ENTRY_UNUSED_NODE_ID)
-        emberSerialPrintf(APP_SERIAL, "  FALSE");
-      else
+      if (remoteNodeId == EMBER_TABLE_ENTRY_UNUSED_NODE_ID){
+        //emberSerialPrintf(APP_SERIAL, "  FALSE");
+      }
+      else{
+        emberSerialPrintf(APP_SERIAL, " %c%c: ",
+                          indexHigh, indexLow);
+
         emberSerialPrintf(APP_SERIAL, "  TRUE ");
 
-      switch (remoteNodeId) {
-      case EMBER_TABLE_ENTRY_UNUSED_NODE_ID:
-        emberSerialPrintf(APP_SERIAL, "  UNUSED   ", remoteNodeId);
-        break;
-      case EMBER_UNKNOWN_NODE_ID:
-        emberSerialPrintf(APP_SERIAL, "  UNKNOWN  ", remoteNodeId);
-        break;
-      case EMBER_DISCOVERY_ACTIVE_NODE_ID:
-        emberSerialPrintf(APP_SERIAL, "  DISC ACT ", remoteNodeId);
-        break;
-      default:
-        emberSerialPrintf(APP_SERIAL, "  0x%2x   ", remoteNodeId);
-        break;
+        switch (remoteNodeId) {
+        case EMBER_TABLE_ENTRY_UNUSED_NODE_ID:
+          emberSerialPrintf(APP_SERIAL, "  UNUSED   ", remoteNodeId);
+          break;
+        case EMBER_UNKNOWN_NODE_ID:
+          emberSerialPrintf(APP_SERIAL, "  UNKNOWN  ", remoteNodeId);
+          break;
+        case EMBER_DISCOVERY_ACTIVE_NODE_ID:
+          emberSerialPrintf(APP_SERIAL, "  DISC ACT ", remoteNodeId);
+          break;
+        default:
+          emberSerialPrintf(APP_SERIAL, "  0x%2x   ", remoteNodeId);
+          break;
+        }
+
+        emberGetAddressTableRemoteEui64(i, remoteEui64);
+        printEUI64(APP_SERIAL, &remoteEui64);
+
+  #ifdef SINK_APP
+        emberSerialPrintf(APP_SERIAL, "  0x%2x", ticksSinceLastHeard[i]);
+  #endif
+        emberSerialPrintf(APP_SERIAL, "\r\n");
       }
-
-      emberGetAddressTableRemoteEui64(i, remoteEui64);
-      printEUI64(APP_SERIAL, &remoteEui64);
-
-#ifdef SINK_APP
-      emberSerialPrintf(APP_SERIAL, "  0x%2x", ticksSinceLastHeard[i]);
-#endif
-      emberSerialPrintf(APP_SERIAL, "\r\n");
       emberSerialWaitSend(APP_SERIAL);
     }
 }
